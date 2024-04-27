@@ -61,6 +61,16 @@ async fn main() {
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
 
+    tracing_subscriber::registry()
+        .with(filter_layer)
+        .with(fmt_layer)
+        .init();
+    // https://carlosmv.hashnode.dev/adding-logging-and-tracing-to-an-axum-app-rust
+
+    let trace_layer = trace::TraceLayer::new_for_http()
+        .make_span_with(trace::DefaultMakeSpan::new())
+        .on_response(trace::DefaultOnResponse::new());
+
     let questionsbank = QuestionBank::new("assets/questions.json").unwrap_or_else(|e| {
         tracing::error!("question new: {}", e);
         std::process::exit(1);
