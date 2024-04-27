@@ -27,7 +27,7 @@ pub struct ApiDoc;
     path = "/api/v1/questions",
     responses(
         (status = 200, description = "List questions", body = [Question]),
-        (status = 204, description = "QuestionBase is empty")
+        (status = 204, description = "QuestionBank is empty")
     )
 )]
 pub async fn questions(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
