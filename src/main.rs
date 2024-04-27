@@ -44,7 +44,7 @@ use tokio::{self, sync::RwLock};
 extern crate fastrand;
 extern crate tracing;
 use askama::Template;
-use tracing::{error, info, trace};
+use tracing::error;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
@@ -56,6 +56,7 @@ async fn handler_404() -> Response {
 
 #[tokio::main]
 async fn main() {
+    // Setup formatting and environment for trace
     let fmt_layer = fmt::layer().with_file(true).with_line_number(true).pretty();
     let filter_layer = EnvFilter::try_from_default_env()
         .or_else(|_| EnvFilter::try_new("info"))
@@ -71,12 +72,14 @@ async fn main() {
         .make_span_with(trace::DefaultMakeSpan::new())
         .on_response(trace::DefaultOnResponse::new());
 
+    // Load questions into the server
     let questionsbank = QuestionBank::new("assets/questions.json").unwrap_or_else(|e| {
         tracing::error!("question new: {}", e);
         std::process::exit(1);
     });
     let questionsbank = Arc::new(RwLock::new(questionsbank));
 
+    // routes with their handlers
     let apis = Router::new()
         .route("/questions", get(questions))
         .route("/paginated_questions", get(paginated_questions))
@@ -86,12 +89,11 @@ async fn main() {
         .route("/questions/:id", delete(delete_question))
         .route("/questions/:id", put(update_question));
 
+    // handy openai auto generated docs!
     let swagger_ui = SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi());
     let redoc_ui = Redoc::with_url("/redoc", ApiDoc::openapi());
     let rapidoc_ui = RapiDoc::new("/api-docs/openapi.json").path("/rapidoc");
 
-    info!("info");
-    trace!("trace");
     let app = Router::new()
         .route("/", get(handler_index))
         .route("/index.html", get(handler_index))
@@ -121,6 +123,7 @@ async fn main() {
             ),
         );
 
+    // start up webserver on localhost:3000
     let ip = SocketAddr::new([127, 0, 0, 1].into(), 3000);
     let listener = tokio::net::TcpListener::bind(ip).await.unwrap();
     tracing::debug!("serving {}", listener.local_addr().unwrap());

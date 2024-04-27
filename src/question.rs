@@ -14,6 +14,18 @@ pub struct Question {
 }
 
 impl Question {
+    /// Creates a new `Question` instance.
+    ///
+    /// # Parameters
+    ///
+    /// * `id`: ID for the question.
+    /// * `title`: The title of the question.
+    /// * `content`: The content of the question.
+    /// * `tags`: An optional list of tags
+    ///
+    /// # Returns
+    ///
+    /// A new `Question` instance with the provided parameters.
     pub fn new(id: &str, title: &str, content: &str, tags: &[&str]) -> Self {
         let id = id.into();
         let title = title.into();
@@ -33,6 +45,11 @@ impl Question {
 }
 
 impl IntoResponse for &Question {
+    /// Converts a `&Question` into an HTTP response.
+    ///
+    /// # Returns
+    ///
+    /// A `Response` object with a status code of 200 OK and a JSON body containing the question data.
     fn into_response(self) -> Response {
         (StatusCode::OK, Json(&self)).into_response()
     }
