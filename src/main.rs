@@ -61,5 +61,58 @@ async fn main() {
         .or_else(|_| EnvFilter::try_new("info"))
         .unwrap();
 
+    let questionsbank = QuestionBank::new("assets/questions.json").unwrap_or_else(|e| {
+        tracing::error!("question new: {}", e);
+        std::process::exit(1);
+    });
+    let questionsbank = Arc::new(RwLock::new(questionsbank));
+
+    let apis = Router::new()
+        .route("/questions", get(questions))
+        .route("/paginated_questions", get(paginated_questions))
+        .route("/questions/:id", get(get_question))
+        .route("/question", get(question))
+        .route("/questions/add", post(post_question))
+        .route("/questions/:id", delete(delete_question))
+        .route("/questions/:id", put(update_question));
+
+    let swagger_ui = SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi());
+    let redoc_ui = Redoc::with_url("/redoc", ApiDoc::openapi());
+    let rapidoc_ui = RapiDoc::new("/api-docs/openapi.json").path("/rapidoc");
+
+    info!("info");
+    trace!("trace");
+    let app = Router::new()
+        .route("/", get(handler_index))
+        .route("/index.html", get(handler_index))
+        //.route_service("/favicon.ico", favicon)
+        .merge(swagger_ui)
+        .merge(redoc_ui)
+        .merge(rapidoc_ui)
+        .nest("/api/v1", apis)
+        /*
+        .layer(trace_layer)
+        .layer(
+            CorsLayer::new()
+                .allow_origin(Any)
+                .allow_methods([Method::GET, Method::POST, Method::DELETE, Method::PUT])
+                .allow_headers([http::header::CONTENT_TYPE, http::header::ACCEPT]),
+        )
+        */
+        .with_state(questionsbank)
+        .fallback(handler_404)
+        .layer(
+            ServiceBuilder::new().layer(trace_layer).layer(
+                CorsLayer::new()
+                    .allow_origin(Any)
+                    .allow_methods(Any)
+                    .allow_headers(Any)
+                    .expose_headers(Any),
+            ),
+        );
+
+    let ip = SocketAddr::new([127, 0, 0, 1].into(), 3000);
+    let listener = tokio::net::TcpListener::bind(ip).await.unwrap();
+    tracing::debug!("serving {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
