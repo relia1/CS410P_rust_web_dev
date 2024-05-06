@@ -31,7 +31,8 @@ pub struct ApiDoc;
     )
 )]
 pub async fn questions(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    questions.read().await.into_response()
+    questions.read(); //.await.into_response()
+    todo!("questions");
 }
 
 #[utoipa::path(
@@ -50,7 +51,7 @@ pub async fn paginated_questions(
     let limit = params.limit;
 
     let all_questions = questions.read();
-    match all_questions.await.paginated_get(page, limit) {
+    match all_questions.await.paginated_get(page, limit).await {
         Ok(res) => Json(res).into_response(),
         Err(_) => QuestionBankError::response(
             StatusCode::NO_CONTENT,
@@ -89,7 +90,7 @@ pub async fn get_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Path(question_id): Path<String>,
 ) -> Response {
-    match questions.read().await.get(&question_id) {
+    match questions.read().await.get(&question_id).await {
         Ok(question) => question.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
