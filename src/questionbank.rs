@@ -193,8 +193,13 @@ impl QuestionBank {
         )
         .bind(limit as i32)
         .bind(start_index as i32)
-        .fetch_one(&self.question_db)
-        .await;
+        .fetch_all(&self.question_db)
+        .await?;
+
+        for row in questions {
+            let title: String = row.get(0);
+            tracing::info!(title);
+        }
 
         todo!("pagination");
     }
