@@ -176,17 +176,15 @@ impl QuestionBank {
             JOIN tags t ON qt.tag_id = t.id
             GROUP BY q.id, q.title, q.content
             ORDER BY q.id
-            OFFSET $1
-            FETCH NEXT $2 ROWS ONLY
-            ;"#,
-        )
+                        ;"#,
+        ) /*OFFSET $1
+        FETCH NEXT $2 ROWS ONLY*/
         .bind(limit as i32)
         .bind(start_index as i32)
         .fetch_all(&self.question_db)
         .await?;
 
         let mut question_vec = Vec::new();
-        tracing::info!("is empty? {}", questions.len());
         for row in questions {
             question_vec.push(<Question as std::convert::From<PgRow>>::from(row));
         }
