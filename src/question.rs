@@ -2,8 +2,8 @@ use crate::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Question {
-    #[schema(example = "id string")]
-    pub id: String,
+    #[schema(example = 5)]
+    pub id: i32,
     #[schema(example = "Title")]
     pub title: String,
     #[schema(example = "Content!")]
@@ -15,22 +15,17 @@ pub struct Question {
 
 impl From<PgRow> for Question {
     fn from(single_row: PgRow) -> Self {
-        let id: String = single_row.get(0);
-        tracing::debug!(id);
+        let id: i32 = single_row.get("id");
+        tracing::info!(id);
 
-        let title: String = single_row.get(1);
-        tracing::debug!(title);
+        let title: String = single_row.get("title");
+        tracing::info!(title);
 
-        let content: String = single_row.get(2);
-        tracing::debug!(content);
+        let content: String = single_row.get("content");
+        tracing::info!(content);
 
-        let tags = match single_row.get(3) {
-            Some(val) => {
-                for tag in &val {
-                    tracing::debug!(tag);
-                }
-                Some(val)
-            }
+        let tags = match single_row.get("tags") {
+            Some(val) => Some(val),
             None => None,
         };
 
@@ -42,6 +37,7 @@ impl From<PgRow> for Question {
         }
     }
 }
+
 impl Question {
     /// Creates a new `Question` instance.
     ///
@@ -55,8 +51,8 @@ impl Question {
     /// # Returns
     ///
     /// A new `Question` instance with the provided parameters.
-    pub fn new(id: &str, title: &str, content: &str, tags: &[&str]) -> Self {
-        let id = id.into();
+    pub fn new(id: i32, title: &str, content: &str, tags: &[&str]) -> Self {
+        let id = id;
         let title = title.into();
         let content = content.into();
         let tags: Option<Vec<String>> = if tags.is_empty() {
@@ -80,6 +76,7 @@ impl IntoResponse for &Question {
     ///
     /// A `Response` object with a status code of 200 OK and a JSON body containing the question data.
     fn into_response(self) -> Response {
+        tracing::info!("{:?}", &self);
         (StatusCode::OK, Json(&self)).into_response()
     }
 }

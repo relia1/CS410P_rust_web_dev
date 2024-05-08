@@ -31,7 +31,7 @@ pub struct ApiDoc;
     )
 )]
 pub async fn questions(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    questions.read(); //.await.into_response()
+    //questions.read().await.into_response()
     todo!("questions");
 }
 
@@ -52,10 +52,13 @@ pub async fn paginated_questions(
 
     let all_questions = questions.read();
     match all_questions.await.paginated_get(page, limit).await {
-        Ok(res) => Json(res).into_response(),
-        Err(_) => QuestionBankError::response(
+        Ok(res) => {
+            tracing::info!("{:?}", &res);
+            Json(res).into_response()
+        }
+        Err(e) => QuestionBankError::response(
             StatusCode::NO_CONTENT,
-            QuestionBankErr::QuestionDoesNotExist("".to_string()),
+            Box::new(QuestionBankErr::QuestionDoesNotExist("".to_string())),
         ),
     }
 }
@@ -73,7 +76,7 @@ pub async fn question(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Res
         Some(question) => question.into_response(),
         None => QuestionBankError::response(
             StatusCode::NO_CONTENT,
-            QuestionBankErr::QuestionDoesNotExist("".to_string()),
+            Box::new(QuestionBankErr::QuestionDoesNotExist("".to_string())),
         ),
     }
 }
@@ -88,9 +91,9 @@ pub async fn question(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Res
 )]
 pub async fn get_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
-    Path(question_id): Path<String>,
+    Path(question_id): Path<i32>,
 ) -> Response {
-    match questions.read().await.get(&question_id).await {
+    match questions.read().await.get(question_id).await {
         Ok(question) => question.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
@@ -98,7 +101,7 @@ pub async fn get_question(
 
 #[utoipa::path(
     post,
-    path = "/api/v1/question/add",
+    path = "/api/v1/questions/add",
     request_body(
         content = inline(Question),
         description = "Question to add"
@@ -112,8 +115,9 @@ pub async fn post_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Json(question): Json<Question>,
 ) -> Response {
-    match questions.write().await.add(question) {
-        Ok(()) => StatusCode::CREATED.into_response(),
+    tracing::info!("post question!");
+    match questions.write().await.add(question).await {
+        Ok(res) => StatusCode::CREATED.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
 }
@@ -128,11 +132,11 @@ pub async fn post_question(
 )]
 pub async fn delete_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
-    Path(question_id): Path<String>,
+    Path(question_id): Path<i32>,
 ) -> Response {
-    match questions.write().await.delete(&question_id) {
+    match questions.write().await.delete(question_id) {
         Ok(()) => StatusCode::OK.into_response(),
-        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
+        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, Box::new(e)),
     }
 }
 
@@ -152,18 +156,19 @@ pub async fn delete_question(
 )]
 pub async fn update_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
-    Path(question_id): Path<String>,
+    Path(question_id): Path<i32>,
     Json(question): Json<Question>,
 ) -> Response {
-    match questions.write().await.update(&question_id, question) {
+    match questions.write().await.update(question_id, question) {
         Ok(_) => StatusCode::OK.into_response(),
         Err(QuestionBankErr::QuestionUnprocessable(e)) => QuestionBankError::response(
             StatusCode::UNPROCESSABLE_ENTITY,
-            QuestionBankErr::QuestionUnprocessable(e),
+            Box::new(QuestionBankErr::QuestionUnprocessable(e)),
         ),
-        Err(QuestionBankErr::NoQuestionPayload) => {
-            QuestionBankError::response(StatusCode::NOT_FOUND, QuestionBankErr::NoQuestionPayload)
-        }
-        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
+        Err(QuestionBankErr::NoQuestionPayload) => QuestionBankError::response(
+            StatusCode::NOT_FOUND,
+            Box::new(QuestionBankErr::NoQuestionPayload),
+        ),
+        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, Box::new(e)),
     }
 }

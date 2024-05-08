@@ -1,3 +1,6 @@
+use axum::BoxError;
+use sqlx::postgres::PgQueryResult;
+
 use crate::*;
 
 /// An enumeration of errors that may occur
@@ -15,6 +18,8 @@ pub enum QuestionBankErr {
     QuestionUnprocessable(String),
     #[error("Invalid query parameter values")]
     QuestionPaginationInvalid(String),
+    #[error("Catch all error")]
+    QuestionCatchAllError(String),
 }
 
 impl From<std::io::Error> for QuestionBankErr {
@@ -41,7 +46,7 @@ impl From<std::io::Error> for QuestionBankErr {
 #[derive(Debug)]
 pub struct QuestionBankError {
     pub status: StatusCode,
-    pub error: QuestionBankErr,
+    pub error: String,
 }
 
 /// Implements `ToSchema` trait for `QuestionBankError` generating a JSON schema
@@ -102,8 +107,11 @@ impl QuestionBankError {
     /// # Returns
     ///
     /// `Response` instance with the status code and JSON body containing the error.
-    pub fn response(status: StatusCode, error: QuestionBankErr) -> Response {
-        let error = QuestionBankError { status, error };
+    pub fn response(status: StatusCode, error: Box<dyn Error>) -> Response {
+        let error = QuestionBankError {
+            status,
+            error: error.to_string(),
+        };
         (status, Json(error)).into_response()
     }
 }
@@ -147,28 +155,9 @@ impl QuestionBank {
     /// If the pagination parameters are invalid, returns a `QuestionBankErr` error.
     pub async fn paginated_get(
         &self,
-        page: usize,
-        limit: usize,
-    ) -> Result<Vec<(String, &Question)>, Box<dyn Error>> {
-        /*
-        let total_questions = self.question_db. //.len();
-        let start_index = (page - 1) * limit;
-        let end_index = start_index + limit;
-        if start_index > total_questions {
-            return Err(QuestionBankErr::QuestionPaginationInvalid(
-                "Invalid query parameter values".to_string(),
-            ));
-        }
-        let question_vec: Vec<(_, _)> = self
-            .question_db
-            .iter()
-            .enumerate()
-            .filter(|&(i, _)| i >= start_index && i < end_index)
-            .map(|(_, (k, v))| (k.clone(), v))
-            .collect();
-        dbg!(&question_vec);
-        Ok(question_vec)
-        */
+        page: i32,
+        limit: i32,
+    ) -> Result<Vec<question::Question>, Box<dyn Error>> {
         let row = sqlx::query(r#"SELECT COUNT(*) FROM questions;"#)
             .fetch_one(&self.question_db)
             .await?;
@@ -189,19 +178,20 @@ impl QuestionBank {
             ORDER BY q.id
             OFFSET $1
             FETCH NEXT $2 ROWS ONLY
-            "#,
+            ;"#,
         )
         .bind(limit as i32)
         .bind(start_index as i32)
         .fetch_all(&self.question_db)
         .await?;
 
+        let mut question_vec = Vec::new();
+        tracing::info!("is empty? {}", questions.len());
         for row in questions {
-            let title: String = row.get(0);
-            tracing::info!(title);
+            question_vec.push(<Question as std::convert::From<PgRow>>::from(row));
         }
 
-        todo!("pagination");
+        Ok(question_vec)
     }
 
     /// Retrieves a random question.
@@ -225,7 +215,7 @@ impl QuestionBank {
     /// # Returns
     ///
     /// A reference to the `Question` instance with the specified ID, or a `QuestionBankErr` error if the question does not exist.
-    pub async fn get<'a>(&'a self, index: &str) -> Result<&'a Question, QuestionBankErr> {
+    pub async fn get<'a>(&'a self, index: i32) -> Result<&'a Question, Box<dyn Error>> {
         /*
         self.question_db
             .get(index)
@@ -276,17 +266,39 @@ impl QuestionBank {
     ///
     /// A `Result` indicating whether the question was added successfully.
     /// If the question already exists, returns a `QuestionBankErr` error.
-    pub fn add(&mut self, question: Question) -> Result<(), QuestionBankErr> {
-        /*
-        let id = question.id.clone();
-        if self.question_db.get(&id).is_some() {
-            return Err(QuestionBankErr::QuestionExists(id));
+    pub async fn add(&mut self, question: Question) -> Result<(), Box<dyn Error>> {
+        tracing::info!("add fn");
+        let question_to_insert =
+            sqlx::query(r#"INSERT INTO questions (title, content) VALUES ($1, $2) RETURNING id"#)
+                .bind(question.title)
+                .bind(question.content)
+                .fetch_one(&self.question_db)
+                .await?;
+
+        let question_id: i32 = question_to_insert.get(0);
+
+        let mut tag_id_vec: Vec<i32> = Vec::new();
+        if !question.tags.is_none() {
+            let mut tag_to_insert;
+            for tag in &question.tags.clone().unwrap() {
+                tag_to_insert = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
+                    .bind(tag)
+                    .fetch_one(&self.question_db)
+                    .await?;
+
+                tag_id_vec.push(tag_to_insert.get(0));
+            }
         }
-        self.question_db.insert(id, question);
-        self.write_questions()?;
+
+        for tag_id in tag_id_vec {
+            sqlx::query(r#"INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);"#)
+                .bind(&question_id)
+                .bind(tag_id)
+                .execute(&self.question_db)
+                .await?;
+        }
+
         Ok(())
-        */
-        todo!("Add of question");
     }
 
     /// Removes a question by its ID.
@@ -299,7 +311,7 @@ impl QuestionBank {
     ///
     /// A `Result` indicating whether the question was removed successfully.
     /// If the question does not exist, returns a `QuestionBankErr` error.
-    pub fn delete(&mut self, index: &str) -> Result<(), QuestionBankErr> {
+    pub fn delete(&mut self, index: i32) -> Result<(), QuestionBankErr> {
         /*
         if !self.question_db.contains_key(index) {
             return Err(QuestionBankErr::QuestionDoesNotExist(index.to_string()));
@@ -325,7 +337,7 @@ impl QuestionBank {
     /// If successful, returns a `StatusCode` of 200.
     pub fn update(
         &mut self,
-        index: &str,
+        index: i32,
         question: Question,
     ) -> Result<StatusCode, QuestionBankErr> {
         /*
@@ -360,3 +372,5 @@ impl IntoResponse for &QuestionBank {
 }
 todo!("check into response trait");
 */
+
+pub fn handle_errors(method: Method, uri: Uri, err: BoxError) {}

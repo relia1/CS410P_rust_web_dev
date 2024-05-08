@@ -9,6 +9,7 @@ mod web;
 
 //use ::migration::*;
 use api::*;
+use axum::error_handling::HandleErrorLayer;
 use db_config::*;
 use pagination::*;
 use question::*;
@@ -19,7 +20,7 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use sqlx::postgres::{PgPoolOptions, PgRow};
 use sqlx::{Pool, Postgres, Row};
 use std::error::Error;
-use tower::ServiceBuilder;
+use tower::{layer, ServiceBuilder};
 use tower_http::{
     cors::{Any, CorsLayer},
     trace,
@@ -29,7 +30,7 @@ extern crate serde_json;
 extern crate thiserror;
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{Method, StatusCode, Uri},
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
     Json, Router,
@@ -54,45 +55,12 @@ use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
 use utoipa_swagger_ui::SwaggerUi;
 
-async fn run() -> Result<(), Box<dyn Error>> {
-    /*
-    use std::env::var;
-    let pg_user = var("PG_USER");
-    let password = "password".trim();
-    let pg_host = var("PG_HOST");
-    let pg_dbname = var("PG_DBNAME");
-    let url = format!(
-        "postgres://{:?}:{:?}@{:?}:5432/{:?}",
-        pg_user, password, pg_host, pg_dbname,
-    );
-    let db = Database::connect(url.clone()).await?;
-    let _db = &db
-        .execute(Statement::from_string(
-            db.get_database_backend(),
-            format!("CREATE DATABASE {:?};", var("PG_DBNAME"),),
-        ))
-        .await?;
-
-    tracing::trace!("test\ntest");
-    let url = format!("{:?}/{:?}", url.clone(), var("PG_DBNAME"));
-    let connection = Database::connect(&url).await;
-
-    Ok(())
-    */
-    Ok(())
-    //todo!("run fn");
-}
-
 async fn handler_404() -> Response {
     (StatusCode::NOT_FOUND, "404 Not Found").into_response()
 }
 
 #[tokio::main]
 async fn main() {
-    let db = Arc::new(RwLock::new(
-        db_setup().await.expect("Unable to setup the database"),
-    ));
-    dbg!(db);
     // Setup formatting and environment for trace
     let fmt_layer = fmt::layer().with_file(true).with_line_number(true).pretty();
     let filter_layer = EnvFilter::try_from_default_env()
@@ -109,15 +77,9 @@ async fn main() {
         .make_span_with(trace::DefaultMakeSpan::new())
         .on_response(trace::DefaultOnResponse::new());
 
-    // Load questions into the server
+    // Connect to database
     let questionsbank = QuestionBank::new().await.unwrap();
-    /*QuestionBank::new("assets/questions.json").unwrap_or_else(|e| {
-        tracing::error!("question new: {}", e);
-        std::process::exit(1);
-    });
-    */
     let questionsbank = Arc::new(RwLock::new(questionsbank));
-    // todo!("loading questions");
 
     // routes with their handlers
     let apis = Router::new()
@@ -137,28 +99,27 @@ async fn main() {
     let app = Router::new()
         .route("/", get(handler_index))
         .route("/index.html", get(handler_index))
+        .nest("/api/v1", apis)
         .merge(swagger_ui)
         .merge(redoc_ui)
         .merge(rapidoc_ui)
-        .nest("/api/v1", apis)
         .with_state(questionsbank)
         .fallback(handler_404)
+        // .layer(HandleErrorLayer::new(handle_errors))
         .layer(
-            ServiceBuilder::new().layer(trace_layer).layer(
-                CorsLayer::new()
-                    .allow_origin(Any)
-                    .allow_methods(Any)
-                    .allow_headers(Any)
-                    .expose_headers(Any),
-            ),
-            //.route_service("/favicon.ico", favicon)
+            ServiceBuilder::new().layer(trace_layer), /*.layer(
+                                                          CorsLayer::new()
+                                                              .allow_origin(Any)
+                                                              .allow_methods(Any)
+                                                              .allow_headers(Any)
+                                                              .expose_headers(Any),
+
+                                                      ),*/ //.route_service("/favicon.ico", favicon)
         );
 
-    let question_db = db_setup().await;
     // start up webserver on localhost:3000
     let ip = SocketAddr::new([0, 0, 0, 0].into(), 3000);
     let listener = tokio::net::TcpListener::bind(ip).await.unwrap();
     tracing::debug!("serving {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
-    todo!("axum::serve");
 }
