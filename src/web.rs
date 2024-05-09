@@ -42,6 +42,7 @@ impl<'a> IndexTemplate<'a> {
 /// # Returns
 ///
 /// * A response containing the random question or a 404 error if no question is available
+#[debug_handler]
 pub async fn handler_index(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
     match questions.read().await.get_random() {
         Some(question) => (StatusCode::OK, IndexTemplate::new(question)).into_response(),

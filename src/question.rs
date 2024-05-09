@@ -16,17 +16,17 @@ pub struct Question {
 impl From<PgRow> for Question {
     fn from(single_row: PgRow) -> Self {
         let id: i32 = single_row.get("id");
-        tracing::info!(id);
+        tracing::trace!(id);
 
         let title: String = single_row.get("title");
-        tracing::info!(title);
+        tracing::trace!(title);
 
         let content: String = single_row.get("content");
-        tracing::info!(content);
+        tracing::trace!(content);
 
-        let tags = match single_row.get("tags") {
-            Some(val) => Some(val),
-            None => None,
+        let tags = match single_row.try_get::<Vec<String>, _>("tags") {
+            Ok(val) => Some(val),
+            Err(_) => None,
         };
 
         Self {

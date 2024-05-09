@@ -170,10 +170,10 @@ impl QuestionBank {
         }
         let questions = sqlx::query(
             r#"
-            SELECT q.title, q.content, ARRAY_AGG(t.name) AS tags
+            SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
             FROM questions q
-            JOIN question_tags qt ON q.id = qt.question_id
-            JOIN tags t ON qt.tag_id = t.id
+            LEFT JOIN question_tags qt ON q.id = qt.question_id
+            LEFT JOIN tags t ON qt.tag_id = t.id
             GROUP BY q.id, q.title, q.content
             ORDER BY q.id
                         ;"#,
@@ -184,7 +184,7 @@ impl QuestionBank {
         .fetch_all(&self.question_db)
         .await?;
 
-        let mut question_vec = Vec::new();
+        let mut question_vec: Vec<Question> = Vec::new();
         for row in questions {
             question_vec.push(<Question as std::convert::From<PgRow>>::from(row));
         }
