@@ -212,26 +212,22 @@ impl QuestionBank {
     /// # Returns
     ///
     /// A reference to the `Question` instance with the specified ID, or a `QuestionBankErr` error if the question does not exist.
-    pub async fn get<'a>(&'a self, index: i32) -> Result<&'a Question, Box<dyn Error>> {
-        /*
-        self.question_db
-            .get(index)
-            .ok_or_else(|| QuestionBankErr::QuestionDoesNotExist(index.to_string()))
-        */
+    pub async fn get(&self, index: i32) -> Result<Question, Box<dyn Error>> {
         let question = sqlx::query(
             r#"
-            SELECT q.title, q.content, ARRAY_AGG(t.name) AS tags
+            SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
             FROM questions q
-            JOIN question_tags qt ON q.id = qt.question_id
-            JOIN tags t ON qt.tag_id = t.id
+            LEFT JOIN question_tags qt ON q.id = qt.question_id
+            LEFT JOIN tags t ON qt.tag_id = t.id
             WHERE q.id = $1
             GROUP BY q.id, q.title, q.content;
             "#,
         )
         .bind(index)
         .fetch_one(&self.question_db)
-        .await;
-        todo!("get of question");
+        .await?;
+
+        Ok(<Question as std::convert::From<PgRow>>::from(question))
     }
 
     /// Adds a new question.
