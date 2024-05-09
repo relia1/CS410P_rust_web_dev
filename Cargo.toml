@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7.5"
+axum = { version = "0.7.5", features = ["macros"] }
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 fastrand = "2.0.2"
@@ -22,4 +22,5 @@ utoipa-redoc = { version = "3.0.0", features = ["axum"] }
 utoipa-swagger-ui = { version = "6.0.0", features = ["axum"] }
 tower = "0.4.13"
 sqlx = { version = "0.7.4", features = [ "runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "time", "json" ] }
+axum-macros = "0.4.1"
 

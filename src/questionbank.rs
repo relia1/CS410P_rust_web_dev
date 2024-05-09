@@ -176,11 +176,10 @@ impl QuestionBank {
             LEFT JOIN tags t ON qt.tag_id = t.id
             GROUP BY q.id, q.title, q.content
             ORDER BY q.id
-                        ;"#,
-        ) /*OFFSET $1
-        FETCH NEXT $2 ROWS ONLY*/
-        .bind(limit as i32)
-        .bind(start_index as i32)
+            LIMIT $1 OFFSET $2"#,
+        )
+        .bind(limit)
+        .bind(start_index)
         .fetch_all(&self.question_db)
         .await?;
 
