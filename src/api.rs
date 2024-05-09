@@ -57,8 +57,8 @@ pub async fn paginated_questions(
             Json(res).into_response()
         }
         Err(e) => QuestionBankError::response(
-            StatusCode::NO_CONTENT,
-            Box::new(QuestionBankErr::QuestionDoesNotExist("".to_string())),
+            StatusCode::NOT_FOUND,
+            Box::new(QuestionBankErr::QuestionDoesNotExist(e.to_string())),
         ),
     }
 }

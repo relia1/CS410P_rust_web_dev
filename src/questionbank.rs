@@ -116,7 +116,7 @@ impl QuestionBankError {
     }
 }
 
-/// A type alias for a `HashMap` of question IDs mapped to `Question` instances.
+/// A type alias for a `Pool<Postgres>`
 type QuestionDB = Pool<Postgres>;
 
 /// A question bank that stores and manages questions
@@ -135,7 +135,7 @@ impl QuestionBank {
     ///
     /// # Returns
     ///
-    /// A new `QuestionBank` instance, or an error if the file cannot be created or read.
+    /// A new `QuestionBank` instance, or an error if the database cannot be initialized
     pub async fn new() -> Result<Self, Box<dyn Error>> {
         let question_db = db_setup().await?;
 
@@ -151,7 +151,7 @@ impl QuestionBank {
     ///
     /// # Returns
     ///
-    /// A vector of tuples that are the question ID and reference to the question
+    /// A vector of Question's
     /// If the pagination parameters are invalid, returns a `QuestionBankErr` error.
     pub async fn paginated_get(
         &self,
@@ -163,7 +163,7 @@ impl QuestionBank {
             .await?;
         let total_questions: i64 = row.get(0);
         let start_index = (page - 1) * limit;
-        if start_index as i64 > total_questions {
+        if (start_index as i64) > total_questions {
             return Err(Box::new(QuestionBankErr::QuestionPaginationInvalid(
                 "Invalid query parameter values".to_string(),
             )));
@@ -234,25 +234,6 @@ impl QuestionBank {
         todo!("get of question");
     }
 
-    /// Writes the current state of the question bank to disk.
-    ///
-    /// This method serializes the `question_db` to JSON and writes it to the file.
-    ///
-    /// # Returns
-    ///
-    /// A `Result` indicating whether the write operation was successful or had
-    /// an IO error
-    fn write_questions(&mut self) -> Result<(), std::io::Error> {
-        /*
-        let json = serde_json::to_string(&self.question_db).unwrap();
-        self.file.rewind()?;
-        self.file.set_len(0)?;
-        self.file.write_all(json.as_bytes())?;
-        self.file.sync_all()
-        */
-        todo!("writing of question to db");
-    }
-
     /// Adds a new question.
     ///
     /// # Parameters
@@ -264,7 +245,6 @@ impl QuestionBank {
     /// A `Result` indicating whether the question was added successfully.
     /// If the question already exists, returns a `QuestionBankErr` error.
     pub async fn add(&mut self, question: Question) -> Result<(), Box<dyn Error>> {
-        tracing::info!("add fn");
         let question_to_insert =
             sqlx::query(r#"INSERT INTO questions (title, content) VALUES ($1, $2) RETURNING id"#)
                 .bind(question.title)
@@ -370,4 +350,4 @@ impl IntoResponse for &QuestionBank {
 todo!("check into response trait");
 */
 
-pub fn handle_errors(method: Method, uri: Uri, err: BoxError) {}
+// pub fn handle_errors(method: Method, uri: Uri, err: BoxError) {}
