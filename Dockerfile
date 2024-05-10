@@ -35,9 +35,8 @@ RUN --mount=type=bind,source=src,target=src \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
     --mount=type=cache,target=/usr/local/cargo/registry/ \
-cargo build --locked --release && \
-cp ./target/release/$APP_NAME /bin/server
-
+    cargo build --locked --release && \
+    cp ./target/release/*rust* /bin/
 ################################################################################
 # Create a new stage for running the application that contains the minimal
 # runtime dependencies for the application. This often uses a different base
@@ -64,11 +63,11 @@ RUN adduser \
 USER appuser
 
 # Copy the executable from the "build" stage.
-COPY --from=build /bin/server /bin/
+COPY --from=build /bin/*rust* /bin/
 COPY --chown=appuser:appuser ./assets ./assets
 COPY --chown=appuser:appuser ./migrations ./migrations
 # Expose the port that the application listens on.
 EXPOSE 3000
 
 # What the container should run when it is started.
-CMD ["/bin/server"]
+CMD ["/bin/rust-web"]
