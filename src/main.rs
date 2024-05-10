@@ -10,7 +10,6 @@ mod web;
 //use ::migration::*;
 use api::*;
 use axum::debug_handler;
-use axum::error_handling::HandleErrorLayer;
 use db_config::*;
 use pagination::*;
 use question::*;
@@ -21,17 +20,14 @@ use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
 use sqlx::postgres::{PgPoolOptions, PgRow};
 use sqlx::{Pool, Postgres, Row};
 use std::error::Error;
-use tower::{layer, ServiceBuilder};
-use tower_http::{
-    cors::{Any, CorsLayer},
-    trace,
-};
+use tower::ServiceBuilder;
+use tower_http::trace;
 use tracing_subscriber::{fmt, EnvFilter};
 extern crate serde_json;
 extern crate thiserror;
 use axum::{
     extract::{Path, Query, State},
-    http::{Method, StatusCode, Uri},
+    http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
     Json, Router,
@@ -43,7 +39,6 @@ use utoipa::{
     OpenApi, ToSchema,
 };
 
-use std::collections::{HashMap, HashSet};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::{self, sync::RwLock};

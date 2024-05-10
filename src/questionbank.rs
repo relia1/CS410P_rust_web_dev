@@ -1,6 +1,3 @@
-use axum::BoxError;
-use sqlx::postgres::PgQueryResult;
-
 use crate::*;
 
 /// An enumeration of errors that may occur
@@ -284,16 +281,22 @@ impl QuestionBank {
     ///
     /// A `Result` indicating whether the question was removed successfully.
     /// If the question does not exist, returns a `QuestionBankErr` error.
-    pub fn delete(&mut self, index: i32) -> Result<(), QuestionBankErr> {
-        /*
-        if !self.question_db.contains_key(index) {
-            return Err(QuestionBankErr::QuestionDoesNotExist(index.to_string()));
-        }
-        self.question_db.remove(index);
-        self.write_questions()?;
+    pub async fn delete(&mut self, index: i32) -> Result<(), Box<dyn Error>> {
+        tracing::trace!("index: {}", index);
+        sqlx::query(
+            r#"
+            DELETE FROM questions
+            WHERE id IN (
+              SELECT question_id FROM question_tags
+              WHERE question_id = $1
+            );
+            "#,
+        )
+        .bind(index)
+        .execute(&self.question_db)
+        .await?;
+
         Ok(())
-        */
-        todo!("delete of question");
     }
 
     /// Updates a question by its ID.

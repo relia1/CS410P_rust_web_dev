@@ -31,7 +31,7 @@ pub struct ApiDoc;
     )
 )]
 pub async fn questions(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    //questions.read().await.into_response()
+    questions.read().await;
     todo!("questions");
 }
 
@@ -117,14 +117,14 @@ pub async fn post_question(
 ) -> Response {
     tracing::info!("post question!");
     match questions.write().await.add(question).await {
-        Ok(res) => StatusCode::CREATED.into_response(),
+        Ok(_) => StatusCode::CREATED.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
 }
 
 #[utoipa::path(
     delete,
-    path = "/api/v1/question/{id}",
+    path = "/api/v1/questions/{id}",
     responses(
         (status = 200, description = "Deleted question", body = ()),
         (status = 400, description = "Bad request", body = QuestionBankError),
@@ -134,9 +134,10 @@ pub async fn delete_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Path(question_id): Path<i32>,
 ) -> Response {
-    match questions.write().await.delete(question_id) {
+    tracing::info!("delete question");
+    match questions.write().await.delete(question_id).await {
         Ok(()) => StatusCode::OK.into_response(),
-        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, Box::new(e)),
+        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
 }
 
