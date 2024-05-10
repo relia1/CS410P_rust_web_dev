@@ -6,7 +6,6 @@ use crate::*;
 #[openapi(
     paths(
         questions,
-        paginated_questions,
         question,
         get_question,
         post_question,
@@ -24,26 +23,13 @@ pub struct ApiDoc;
 
 #[utoipa::path(
     get,
-    path = "/api/v1/questions",
-    responses(
-        (status = 200, description = "List questions", body = [Question]),
-        (status = 204, description = "QuestionBank is empty")
-    )
-)]
-pub async fn questions(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    questions.read().await;
-    todo!("questions");
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/paginated_questions?page=1&limit=5",
+    path = "/api/v1/questions?page=1&limit=5",
     responses(
         (status = 200, description = "List questions", body = [Question]),
         (status = 404, description = "No questions in that range")
     )
 )]
-pub async fn paginated_questions(
+pub async fn questions(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Query(params): Query<Pagination>,
 ) -> Response {

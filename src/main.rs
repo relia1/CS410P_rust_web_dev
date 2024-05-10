@@ -80,7 +80,6 @@ async fn main() {
     // routes with their handlers
     let apis = Router::new()
         .route("/questions", get(questions))
-        .route("/paginated_questions", get(paginated_questions))
         .route("/questions/:id", get(get_question))
         .route("/question", get(question))
         .route("/questions/add", post(post_question))
