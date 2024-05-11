@@ -3,20 +3,12 @@ use crate::*;
 /// An enumeration of errors that may occur
 #[derive(Debug, thiserror::Error, ToSchema, Serialize)]
 pub enum QuestionBankErr {
-    #[error("Question already exists: {0}")]
-    QuestionExists(String),
     #[error("Questionbank io failed: {0}")]
-    QuestionBankIoError(String),
-    #[error("Missing question payload")]
-    NoQuestionPayload,
+    IoError(String),
     #[error("Question {0} doesn't exist")]
-    QuestionDoesNotExist(String),
-    #[error("Question payload unprocessable")]
-    QuestionUnprocessable(String),
+    DoesNotExist(String),
     #[error("Invalid query parameter values")]
-    QuestionPaginationInvalid(String),
-    #[error("Catch all error")]
-    QuestionCatchAllError(String),
+    PaginationInvalid(String),
 }
 
 impl From<std::io::Error> for QuestionBankErr {
@@ -34,7 +26,7 @@ impl From<std::io::Error> for QuestionBankErr {
     /// let question_bank_err: QuestionBankErr = io_err.into();
     /// ```
     fn from(e: std::io::Error) -> Self {
-        QuestionBankErr::QuestionBankIoError(e.to_string())
+        QuestionBankErr::IoError(e.to_string())
     }
 }
 
@@ -161,7 +153,7 @@ impl QuestionBank {
         let total_questions: i64 = row.get(0);
         let start_index = (page - 1) * limit;
         if (start_index as i64) > total_questions {
-            return Err(Box::new(QuestionBankErr::QuestionPaginationInvalid(
+            return Err(Box::new(QuestionBankErr::PaginationInvalid(
                 "Invalid query parameter values".to_string(),
             )));
         }

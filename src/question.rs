@@ -52,7 +52,6 @@ impl Question {
     ///
     /// A new `Question` instance with the provided parameters.
     pub fn new(id: i32, title: &str, content: &str, tags: &[&str]) -> Self {
-        let id = id;
         let title = title.into();
         let content = content.into();
         let tags: Option<Vec<String>> = if tags.is_empty() {

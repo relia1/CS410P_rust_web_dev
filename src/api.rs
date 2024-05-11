@@ -44,7 +44,7 @@ pub async fn questions(
         }
         Err(e) => QuestionBankError::response(
             StatusCode::NOT_FOUND,
-            Box::new(QuestionBankErr::QuestionDoesNotExist(e.to_string())),
+            Box::new(QuestionBankErr::DoesNotExist(e.to_string())),
         ),
     }
 }
@@ -62,7 +62,7 @@ pub async fn question(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Res
         Some(question) => question.into_response(),
         None => QuestionBankError::response(
             StatusCode::NO_CONTENT,
-            Box::new(QuestionBankErr::QuestionDoesNotExist("".to_string())),
+            Box::new(QuestionBankErr::DoesNotExist("".to_string())),
         ),
     }
 }
@@ -141,21 +141,14 @@ pub async fn delete_question(
         (status = 422, description = "Unprocessable entity", body = QuestionBankError),
     )
 )]
+#[debug_handler]
 pub async fn update_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Path(question_id): Path<i32>,
     Json(question): Json<Question>,
 ) -> Response {
-    match questions.write().await.update(question_id, question) {
+    match questions.write().await.update(question_id, question).await {
         Ok(_) => StatusCode::OK.into_response(),
-        Err(QuestionBankErr::QuestionUnprocessable(e)) => QuestionBankError::response(
-            StatusCode::UNPROCESSABLE_ENTITY,
-            Box::new(QuestionBankErr::QuestionUnprocessable(e)),
-        ),
-        Err(QuestionBankErr::NoQuestionPayload) => QuestionBankError::response(
-            StatusCode::NOT_FOUND,
-            Box::new(QuestionBankErr::NoQuestionPayload),
-        ),
-        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, Box::new(e)),
+        Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
 }
