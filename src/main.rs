@@ -100,7 +100,6 @@ async fn main() {
         .merge(rapidoc_ui)
         .with_state(questionsbank)
         .fallback(handler_404)
-        // .layer(HandleErrorLayer::new(handle_errors))
         .layer(
             ServiceBuilder::new().layer(trace_layer), /*.layer(
                                                           CorsLayer::new()

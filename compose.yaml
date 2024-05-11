@@ -17,6 +17,7 @@ services:
     environment:
       - PG_DBNAME=rust_web
       - PG_HOST=db
+      - DB_HOST=db
       - PG_USER=postgres
       - PG_PASSWORDFILE=/run/secrets/db-password
       - RUST_LOG=trace
@@ -44,7 +45,7 @@ services:
       - POSTGRES_DB=rust_web
       - POSTGRES_PASSWORD_FILE=/run/secrets/db-password
     expose:
-      - 5432
+      - 5432:5432
     healthcheck:
       test: [ "CMD", "pg_isready" ]
       interval: 10s
