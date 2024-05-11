@@ -240,21 +240,21 @@ impl QuestionBank {
         let question_id: i32 = question_to_insert.get(0);
 
         let mut tag_id_vec: Vec<i32> = Vec::new();
-        if !question.tags.is_none() {
-            let mut tag_to_insert;
+        if question.tags.is_some() {
+            let mut tag_id;
             for tag in &question.tags.clone().unwrap() {
-                tag_to_insert = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
+                tag_id = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
                     .bind(tag)
                     .fetch_one(&self.question_db)
                     .await?;
 
-                tag_id_vec.push(tag_to_insert.get(0));
+                tag_id_vec.push(tag_id.get(0));
             }
         }
 
         for tag_id in tag_id_vec {
             sqlx::query(r#"INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);"#)
-                .bind(&question_id)
+                .bind(question_id)
                 .bind(tag_id)
                 .execute(&self.question_db)
                 .await?;
@@ -274,7 +274,6 @@ impl QuestionBank {
     /// A `Result` indicating whether the question was removed successfully.
     /// If the question does not exist, returns a `QuestionBankErr` error.
     pub async fn delete(&mut self, index: i32) -> Result<(), Box<dyn Error>> {
-        tracing::trace!("index: {}", index);
         sqlx::query(
             r#"
             DELETE FROM questions
@@ -303,42 +302,62 @@ impl QuestionBank {
     /// A `Result` indicating whether the question was updated successfully.
     /// If the question does not exist or is unprocessable, returns a `QuestionBankErr` error.
     /// If successful, returns a `StatusCode` of 200.
-    pub fn update(
+    pub async fn update(
         &mut self,
         index: i32,
         question: Question,
-    ) -> Result<StatusCode, QuestionBankErr> {
-        /*
-        if !self.question_db.contains_key(index) {
-            return Err(QuestionBankErr::NoQuestionPayload);
-        }
-        if question.id.is_empty() {
-            return Err(QuestionBankErr::QuestionUnprocessable(index.to_string()));
-        }
-        self.question_db
-            .entry(index.to_string())
-            .and_modify(|x| *x = question);
-        self.write_questions()?;
-        Ok(StatusCode::OK)
-        */
-        todo!("update of question");
+    ) -> Result<Question, Box<dyn Error>> {
+        let title = question.title;
+        let content = question.content;
+        let tags = question.tags;
+
+        let mut question_to_update = self.get(index).await?;
+        question_to_update.title = title.clone();
+        question_to_update.content = content.clone();
+        question_to_update.tags = tags;
+
+        sqlx::query(
+            r#"
+            UPDATE questions
+            SET title = $1, content = $2
+            WHERE id = $3;"#,
+        )
+        .bind(title)
+        .bind(content)
+        .bind(index)
+        .execute(&self.question_db)
+        .await?;
+
+        sqlx::query(
+            r#"
+            DELETE FROM question_tags
+            WHERE question_id = $1;
+            "#,
+        )
+        .bind(question_to_update.id)
+        .execute(&self.question_db)
+        .await?;
+
+        let mut tag_id_vec: Vec<i32> = Vec::new();
+        let mut tag_id;
+        if let Some(ref tags_to_add) = question_to_update.tags {
+            for tag in tags_to_add {
+                tag_id = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
+                    .bind(tag)
+                    .fetch_one(&self.question_db)
+                    .await?;
+
+                tag_id_vec.push(tag_id.get(0));
+            }
+            for tag_id in tag_id_vec {
+                sqlx::query(r#"INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);"#)
+                    .bind(index)
+                    .bind(tag_id)
+                    .execute(&self.question_db)
+                    .await?;
+            }
+        };
+
+        Ok(question_to_update)
     }
 }
-
-/*
-/// Converts a `QuestionBank` reference into an HTTP response.
-///
-/// # Returns
-///
-/// A `Response` object with a status code of 200 OK and a JSON body containing the question map.
-*/
-/*
-impl IntoResponse for &QuestionBank {
-    fn into_response(self) -> Response {
-        (StatusCode::OK, Json(&self.question_db)).into_response()
-    }
-}
-todo!("check into response trait");
-*/
-
-// pub fn handle_errors(method: Method, uri: Uri, err: BoxError) {}
