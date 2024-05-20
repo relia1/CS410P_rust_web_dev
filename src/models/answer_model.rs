@@ -93,7 +93,7 @@ pub async fn update(
     let content = answer.content;
 
     let mut answer_to_update = get(answers, index).await?;
-    answer_to_update.content = content.clone();
+    answer_to_update.content.clone_from(&content);
 
     sqlx::query(
         r#"

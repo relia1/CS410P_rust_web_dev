@@ -174,8 +174,8 @@ pub async fn update(
     let tags = question.tags;
 
     let mut question_to_update = get(questions, index).await?;
-    question_to_update.title = title.clone();
-    question_to_update.content = content.clone();
+    question_to_update.title.clone_from(&title);
+    question_to_update.content.clone_from(&content);
     question_to_update.tags = tags;
 
     sqlx::query(
