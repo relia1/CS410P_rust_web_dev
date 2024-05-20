@@ -1,9 +1,10 @@
-use crate::*;
+use crate::entities::lib::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Question {
     #[schema(example = 5)]
-    pub id: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub id: Option<i32>,
     #[schema(example = "Title")]
     pub title: String,
     #[schema(example = "Content!")]
@@ -15,7 +16,7 @@ pub struct Question {
 
 impl From<PgRow> for Question {
     fn from(single_row: PgRow) -> Self {
-        let id: i32 = single_row.get("id");
+        let id: Option<i32> = single_row.get("id");
         tracing::trace!(id);
 
         let title: String = single_row.get("title");
@@ -51,7 +52,7 @@ impl Question {
     /// # Returns
     ///
     /// A new `Question` instance with the provided parameters.
-    pub fn new(id: i32, title: &str, content: &str, tags: &[&str]) -> Self {
+    pub fn new(id: Option<i32>, title: &str, content: &str, tags: &[&str]) -> Self {
         let title = title.into();
         let content = content.into();
         let tags: Option<Vec<String>> = if tags.is_empty() {

@@ -1,51 +1,38 @@
 #![warn(clippy::all)]
 
-mod api;
-mod db_config;
+mod controllers;
+mod entities;
+mod config;
+mod models;
 mod pagination;
-mod question;
-mod questionbank;
+mod repositories;
 mod web;
+mod db_config;
 
-//use ::migration::*;
-use api::*;
-use axum::debug_handler;
-use db_config::*;
-use pagination::*;
-use question::*;
-use questionbank::*;
 use web::*;
+use config::*;
 
-use serde::{ser::SerializeStruct, Deserialize, Serialize, Serializer};
-use sqlx::postgres::{PgPoolOptions, PgRow};
-use sqlx::{Pool, Postgres, Row};
-use std::error::Error;
+use crate::controllers::question_controller::*;
+use serde::Serialize;
 use tower::ServiceBuilder;
 use tower_http::trace;
 use tracing_subscriber::{fmt, EnvFilter};
 extern crate serde_json;
 extern crate thiserror;
 use axum::{
-    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Response},
     routing::{delete, get, post, put},
-    Json, Router,
+    Router,
 };
 
-use utoipa::{
-    openapi::schema::{ObjectBuilder, Schema, SchemaType},
-    openapi::RefOr,
-    OpenApi, ToSchema,
-};
+use utoipa::OpenApi;
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::{self, sync::RwLock};
 extern crate fastrand;
 extern crate tracing;
-use askama::Template;
-use tracing::error;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use utoipa_rapidoc::RapiDoc;
 use utoipa_redoc::{Redoc, Servable};
@@ -74,14 +61,13 @@ async fn main() {
         .on_response(trace::DefaultOnResponse::new());
 
     // Connect to database
-    let questionsbank = QuestionBank::new().await.unwrap();
-    let questionsbank = Arc::new(RwLock::new(questionsbank));
+    let questionsbank = Arc::new(RwLock::new(QuestionBank::new().await.unwrap()));
+    // let questionsbank = Arc::new(RwLock::new(questionsbank));
 
     // routes with their handlers
     let apis = Router::new()
         .route("/questions", get(questions))
         .route("/questions/:id", get(get_question))
-        .route("/question", get(question))
         .route("/questions/add", post(post_question))
         .route("/questions/:id", delete(delete_question))
         .route("/questions/:id", put(update_question));

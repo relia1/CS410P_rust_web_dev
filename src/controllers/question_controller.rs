@@ -1,12 +1,14 @@
-use crate::*;
-
+use crate::controllers::lib::*;
+use crate::entities::question::Question;
+use crate::models::question_model::*;
+use crate::models::errors::*;
+use crate::pagination::Pagination;
 // From utoipa/examples/{simple-axum, axum-todo}.
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
         questions,
-        question,
         get_question,
         post_question,
         delete_question,
@@ -36,8 +38,8 @@ pub async fn questions(
     let page = params.page;
     let limit = params.limit;
 
-    let all_questions = questions.read();
-    match all_questions.await.paginated_get(page, limit).await {
+    let read_lock = questions.read().await;
+    match paginated_get(&read_lock.question_db, page, limit).await {
         Ok(res) => {
             tracing::info!("{:?}", &res);
             Json(res).into_response()
@@ -45,24 +47,6 @@ pub async fn questions(
         Err(e) => QuestionBankError::response(
             StatusCode::NOT_FOUND,
             Box::new(QuestionBankErr::DoesNotExist(e.to_string())),
-        ),
-    }
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/v1/question",
-    responses(
-        (status = 200, description = "Return random question", body = Question),
-        (status = 204, description = "Questionbase is empty")
-    )
-)]
-pub async fn question(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    match questions.read().await.get_random() {
-        Some(question) => question.into_response(),
-        None => QuestionBankError::response(
-            StatusCode::NO_CONTENT,
-            Box::new(QuestionBankErr::DoesNotExist("".to_string())),
         ),
     }
 }
@@ -79,7 +63,8 @@ pub async fn get_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Path(question_id): Path<i32>,
 ) -> Response {
-    match questions.read().await.get(question_id).await {
+    let read_lock = questions.read().await;
+    match get(&read_lock.question_db, question_id).await {
         Ok(question) => question.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
@@ -102,7 +87,8 @@ pub async fn post_question(
     Json(question): Json<Question>,
 ) -> Response {
     tracing::info!("post question!");
-    match questions.write().await.add(question).await {
+    let write_lock = questions.write().await;
+    match add(&write_lock.question_db, question).await {
         Ok(_) => StatusCode::CREATED.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
@@ -121,7 +107,8 @@ pub async fn delete_question(
     Path(question_id): Path<i32>,
 ) -> Response {
     tracing::info!("delete question");
-    match questions.write().await.delete(question_id).await {
+    let write_lock = questions.write().await;
+    match delete(&write_lock.question_db, question_id).await {
         Ok(()) => StatusCode::OK.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }
@@ -147,7 +134,8 @@ pub async fn update_question(
     Path(question_id): Path<i32>,
     Json(question): Json<Question>,
 ) -> Response {
-    match questions.write().await.update(question_id, question).await {
+    let write_lock = questions.write().await;
+    match update(&write_lock.question_db, question_id, question).await {
         Ok(_) => StatusCode::OK.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }

@@ -1,3 +1,5 @@
+/*
+use crate::question::Question;
 use crate::*;
 
 /// An enumeration of errors that may occur
@@ -302,7 +304,7 @@ impl QuestionBank {
     /// A `Result` indicating whether the question was updated successfully.
     /// If the question does not exist or is unprocessable, returns a `QuestionBankErr` error.
     /// If successful, returns a `StatusCode` of 200.
-    pub async fn update(
+*   pub async fn update(
         &mut self,
         index: i32,
         question: Question,
@@ -361,3 +363,4 @@ impl QuestionBank {
         Ok(question_to_update)
     }
 }
+*/

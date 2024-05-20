@@ -1,4 +1,8 @@
 use crate::*;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::Pool;
+use sqlx::Postgres;
+use std::error::Error;
 use tracing::trace;
 
 pub async fn db_setup() -> Result<Pool<Postgres>, Box<dyn Error>> {
