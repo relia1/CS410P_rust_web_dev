@@ -1,18 +1,29 @@
+use crate::entities::question::*;
+use QuestionBank;
 use crate::*;
+use askama::Template;
+use askama_axum::IntoResponse;
+use axum::debug_handler;
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::Response;
+use std::sync::Arc;
+use crate::models::question_model::get;
+use tokio::sync::RwLock;
 
-#[derive(Template)]
+#[derive(Template, Serialize, Debug)]
 #[template(path = "index.html")]
-pub struct IndexTemplate<'a> {
+pub struct IndexTemplate {
     /// A template struct for rendering an HTML page using the `index.html` template.
     ///
     /// # Fields
     ///
-    /// * `question: &'a Question`: A reference to a `Question` instance.
+    /// * `question: Question`: A `Question` instance.
     ///
     /// # Template
     ///
     /// The template is located at `index.html`.
-    question: &'a Question,
+    question: Question,
 }
 
 /// Creates a new instance of `IndexTemplate` with the given `question`.
@@ -24,8 +35,8 @@ pub struct IndexTemplate<'a> {
 /// # Returns
 ///
 /// A new `IndexTemplate` instance populated with the given `question`.
-impl<'a> IndexTemplate<'a> {
-    fn new(question: &'a Question) -> Self {
+impl IndexTemplate {
+    fn new(question: Question) -> Self {
         Self { question }
     }
 }
@@ -44,8 +55,7 @@ impl<'a> IndexTemplate<'a> {
 /// * A response containing the random question or a 404 error if no question is available
 #[debug_handler]
 pub async fn handler_index(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
-    match questions.read().await.get_random() {
-        Some(question) => (StatusCode::OK, IndexTemplate::new(question)).into_response(),
-        None => (StatusCode::NOT_FOUND, "404 Not Found").into_response(),
-    }
+    let read_lock = questions.read().await;
+    let question = get(&read_lock.question_db, 1).await.unwrap();
+    (StatusCode::OK, IndexTemplate::new(question)).into_response()
 }

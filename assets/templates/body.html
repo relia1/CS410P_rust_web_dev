@@ -1,6 +1,10 @@
 <body>
 		{% block body %}
-		<h1>{{ question.id }}</h1>
+		{% if let Some(id) = question.id %}
+		<h1>{{ id }}</h1>
+		{% else %}
+		Value is None
+		{% endif %}
 		{% endblock %}
 		{% include "footer.html" %}
 </body>
