@@ -1,3 +1,3 @@
 [general]
-dirs = ["assets/templates"]
+dirs = ["src/views/templates"]
 
