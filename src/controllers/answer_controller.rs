@@ -49,7 +49,7 @@ pub async fn get_answer(
     path = "/api/v1/questions/{id}/answer",
     request_body(
         content = inline(Answer),
-        description = "Question to add"
+        description = "Answer to add"
     ),
     responses(
         (status = 201, description = "Added answer", body = ()),
@@ -61,6 +61,7 @@ pub async fn post_answer(
     Json(answer): Json<Answer>,
 ) -> Response {
     let write_guard = answers.write().await;
+    tracing::info!("post answer");
     match add(&write_guard.question_db, answer).await {
         Ok(_) => StatusCode::CREATED.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),

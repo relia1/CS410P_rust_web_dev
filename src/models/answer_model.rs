@@ -12,9 +12,9 @@ use crate::entities::answer::*;
 pub async fn get(answers: &Pool<Postgres>, index: i32) -> Result<Answer, Box<dyn Error>> {
     let answer = sqlx::query(
         r#"
-        SELECT id, content, question_id
+        SELECT id, answer, question_id
         FROM answers
-        WHERE id = $1
+        WHERE question_id = $1
         "#,
     )
     .bind(index)
@@ -34,14 +34,18 @@ pub async fn get(answers: &Pool<Postgres>, index: i32) -> Result<Answer, Box<dyn
 ///
 /// A `Result` indicating whether the question was added successfully.
 /// If the question already exists, returns a `QuestionBankErr` error.
-pub async fn add(answers: &Pool<Postgres>, question: Answer) -> Result<(), Box<dyn Error>> {
-    let question_to_insert =
-        sqlx::query(r#"INSERT INTO questions (title, content) VALUES ($1, $2) RETURNING id"#)
-        .bind(question.content)
+pub async fn add(answers: &Pool<Postgres>, answer: Answer) -> Result<(), Box<dyn Error>> {
+    tracing::info!("in add fn");
+    let answer_to_insert =
+        sqlx::query(r#"INSERT INTO answers (answer, question_id) VALUES ($1, $2) RETURNING id"#)
+        .bind(answer.answer)
+        .bind(answer.question_id)
         .fetch_one(answers)
         .await?;
 
-    let _question_id: i32 = question_to_insert.get(0);
+
+    let _question_id: i32 = answer_to_insert.get(0);
+    tracing::info!(_question_id);
 
     Ok(())
 }
@@ -59,12 +63,9 @@ pub async fn add(answers: &Pool<Postgres>, question: Answer) -> Result<(), Box<d
 pub async fn delete(answers: &Pool<Postgres>, index: i32) -> Result<(), Box<dyn Error>> {
     sqlx::query(
         r#"
-        DELETE FROM questions
-        WHERE id IN (
-          SELECT question_id FROM question_tags
-          WHERE question_id = $1
-        );
-        "#,
+        DELETE FROM answers
+        WHERE question_id = $1
+        ;"#,
     )
     .bind(index)
     .execute(answers)
@@ -90,18 +91,18 @@ pub async fn update(
     index: i32,
     answer: Answer,
 ) -> Result<Answer, Box<dyn Error>> {
-    let content = answer.content;
+    let answer = answer.answer;
 
     let mut answer_to_update = get(answers, index).await?;
-    answer_to_update.content.clone_from(&content);
+    answer_to_update.answer.clone_from(&answer);
 
     sqlx::query(
         r#"
         UPDATE answers
-        SET content = $1, question_id = $2
-        WHERE id = $3;"#,
+        SET answer = $1
+        WHERE question_id = $2;"#,
     )
-    .bind(content)
+    .bind(answer)
     .bind(index)
     .execute(answers)
     .await?;

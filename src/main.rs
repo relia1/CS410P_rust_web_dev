@@ -71,7 +71,12 @@ async fn main() {
         .route("/questions/:id", get(get_question))
         .route("/questions/add", post(post_question))
         .route("/questions/:id", delete(delete_question))
-        .route("/questions/:id", put(update_question));
+        .route("/questions/:id", put(update_question))
+        .route("/questions/:id/answer", get(get_answer))
+        .route("/questions/:id/answer", post(post_answer))
+        .route("/questions/:id/answer", delete(delete_answer))
+        .route("/questions/:id/answer", put(update_answer));
+
 
     // handy openai auto generated docs!
     let swagger_ui = SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi());

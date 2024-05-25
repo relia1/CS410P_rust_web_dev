@@ -3,10 +3,11 @@ use crate::entities::lib::*;
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub struct Answer {
     #[schema(example = 5)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<i32>,
-    #[schema(example = "Content")]
-    pub content: String,
-    #[schema(example = r#"["history", "math"]"#)]
+    #[schema(example = "Answer")]
+    pub answer: String,
+    #[schema(example = "5")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub question_id: Option<i32>,
 }
@@ -16,15 +17,15 @@ impl From<PgRow> for Answer {
         let id: Option<i32> = single_row.get("id");
         tracing::trace!(id);
 
-        let content: String = single_row.get("content");
-        tracing::trace!(content);
+        let answer: String = single_row.get("answer");
+        tracing::trace!(answer);
 
         let question_id: Option<i32> = single_row.get("question_id");
         tracing::trace!(id);
 
         Self {
             id,
-            content,
+            answer,
             question_id,
         }
     }
@@ -37,18 +38,18 @@ impl Answer {
     ///
     /// * `id`: ID for the answer.
     /// * `title`: The title of the question.
-    /// * `content`: The content of the answer.
+    /// * `answer`: The answer of the answer.
     /// * `tags`: An optional list of tags
     ///
     /// # Returns
     ///
     /// A new `Answer` instance with the provided parameters.
-    pub fn new(_id: Option<i32>, content: &str, question_id: Option<i32>) -> Self {
-        let content = content.into();
+    pub fn new(_id: Option<i32>, answer: &str, question_id: Option<i32>) -> Self {
+        let answer = answer.into();
 
         Self {
             id: None,
-            content,
+            answer,
             question_id,
         }
     }
