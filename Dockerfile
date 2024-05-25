@@ -30,7 +30,7 @@ RUN apk add --no-cache clang lld musl-dev git
 RUN --mount=type=bind,source=src,target=src \
     --mount=type=bind,source=Cargo.toml,target=Cargo.toml \
     --mount=type=bind,source=Cargo.lock,target=Cargo.lock \
-    --mount=type=bind,source=assets/templates,target=templates \
+    --mount=type=bind,source=src/views/templates,target=templates \
     --mount=type=bind,source=migrations,target=migrations \
     --mount=type=cache,target=/app/target/ \
     --mount=type=cache,target=/usr/local/cargo/git/db \
@@ -64,7 +64,7 @@ USER appuser
 
 # Copy the executable from the "build" stage.
 COPY --from=build /bin/*rust* /bin/
-COPY --chown=appuser:appuser ./assets ./assets
+# COPY --chown=appuser:appuser ./assets ./assets
 COPY --chown=appuser:appuser ./migrations ./migrations
 # Expose the port that the application listens on.
 EXPOSE 3000

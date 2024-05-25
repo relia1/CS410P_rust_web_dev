@@ -23,7 +23,7 @@ use crate::QuestionBank;
         (name = "Question's Answers API", description = "Question's Answer API")
     )
 )]
-pub struct ApiDoc;
+pub struct ApiDoc2;
 
 #[utoipa::path(
     get,
