@@ -7,7 +7,6 @@ use crate::QuestionBank;
 
 
 // From utoipa/examples/{simple-axum, axum-todo}.
-
 #[derive(OpenApi)]
 #[openapi(
     paths(
@@ -23,6 +22,7 @@ use crate::QuestionBank;
         (name = "Question's Answers API", description = "Question's Answer API")
     )
 )]
+// TODO figure out a better way of combining answers/questions openapi
 pub struct ApiDoc2;
 
 #[utoipa::path(

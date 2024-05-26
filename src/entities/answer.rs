@@ -36,10 +36,8 @@ impl Answer {
     ///
     /// # Parameters
     ///
-    /// * `id`: ID for the answer.
-    /// * `title`: The title of the question.
+    /// * `id`: ID of the question
     /// * `answer`: The answer of the answer.
-    /// * `tags`: An optional list of tags
     ///
     /// # Returns
     ///

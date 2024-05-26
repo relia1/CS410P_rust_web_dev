@@ -63,7 +63,6 @@ async fn main() {
 
     // Connect to database
     let questionsbank = Arc::new(RwLock::new(QuestionBank::new().await.unwrap()));
-    // let questionsbank = Arc::new(RwLock::new(questionsbank));
 
     // routes with their handlers
     let apis = Router::new()
