@@ -1,5 +1,4 @@
-use sqlx::Pool;
-use sqlx::Postgres;
+use sea_orm::DatabaseConnection;
 use std::error::Error;
 use crate::db_config::*;
 
@@ -7,7 +6,7 @@ use crate::db_config::*;
 /// A question bank that stores and manages questions and their answers
 #[derive(Debug)]
 pub struct QuestionBank {
-    pub question_db: Pool<Postgres>,
+    pub question_db: DatabaseConnection,
 }
 
 impl QuestionBank {

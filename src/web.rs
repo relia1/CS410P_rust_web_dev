@@ -1,4 +1,4 @@
-use crate::entities::question::*;
+use crate::entities:: questions::Model as Question;
 use crate::*;
 use askama::Template;
 use askama_axum::IntoResponse;

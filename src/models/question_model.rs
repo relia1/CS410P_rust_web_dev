@@ -1,8 +1,8 @@
 use crate::models::lib::*;
-use crate::entities::question;
-use crate::entities::question::Question;
-
-
+use crate::entities::questions::Model as Question;
+use sea_orm::EntityTrait;
+use crate::entities::questions::Entity;
+use crate::entities::questions::Column;
 
 
 /// Retrieves a paginated list of questions from the question bank.
@@ -17,10 +17,36 @@ use crate::entities::question::Question;
 /// A vector of Question's
 /// If the pagination parameters are invalid, returns a `QuestionBankErr` error.
 pub async fn paginated_get(
-    questions: &Pool<Postgres>,
-    page: i32,
-    limit: i32,
-) -> Result<Vec<question::Question>, Box<dyn Error>> {
+    questions: &DatabaseConnection,
+    _page: i32,
+    _limit: i32,
+) -> Result<Vec<Question>, Box<dyn Error>> {
+    let mut ret_questions = Vec::new();
+    let mut cursor = Entity::find().cursor_by(Column::Id);
+    cursor.after(1).before(100);
+    for question in cursor.first(10).all(questions).await? {
+        ret_questions.push(question.clone())
+    }
+    Ok(ret_questions)
+    /*
+    let question = Question::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
+        r#"
+        SELECT id, answer, question_id
+        FROM answers
+        WHERE question_id = $1
+        "#,
+        [index.into()],
+        ))
+        .one(answers)
+        .await.unwrap_or(None);
+
+    match answer {
+        Some(res) => Ok(res),
+        None => Err("No answer found for question".into()),*/
+}
+
+/*
     let row = sqlx::query(r#"SELECT COUNT(*) FROM questions;"#)
         .fetch_one(questions)
         .await?;
@@ -52,7 +78,7 @@ pub async fn paginated_get(
     }
 
     Ok(question_vec)
-}
+}*/
 
 /// Retrieves a question by its ID.
 ///
@@ -63,7 +89,10 @@ pub async fn paginated_get(
 /// # Returns
 ///
 /// A reference to the `Question` instance with the specified ID, or a `QuestionBankErr` error if the question does not exist.
-pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Question, Box<dyn Error>> {
+pub async fn get(_questions: &DatabaseConnection, _index: i32) -> Result<Question, Box<dyn Error>> {
+    todo!();
+}
+/*pub async fn get(questions: &DatabaseConnection, index: i32) -> Result<Question, Box<dyn Error>> {
     let question = sqlx::query(
         r#"
         SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
@@ -79,7 +108,7 @@ pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Question, Box
     .await?;
 
     Ok(<Question as std::convert::From<PgRow>>::from(question))
-}
+}*/
 
 /// Adds a new question.
 ///
@@ -91,7 +120,10 @@ pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Question, Box
 ///
 /// A `Result` indicating whether the question was added successfully.
 /// If the question already exists, returns a `QuestionBankErr` error.
-pub async fn add(questions: &Pool<Postgres>, question: Question) -> Result<(), Box<dyn Error>> {
+pub async fn add(_questions: &DatabaseConnection, _question: Question) -> Result<(), Box<dyn Error>> {
+    todo!("todo");
+}
+/*pub async fn add(questions: &DatabaseConnection, question: Question) -> Result<(), Box<dyn Error>> {
     let question_to_insert =
         sqlx::query(r#"INSERT INTO questions (title, content) VALUES ($1, $2) RETURNING id"#)
             .bind(question.title)
@@ -123,7 +155,7 @@ pub async fn add(questions: &Pool<Postgres>, question: Question) -> Result<(), B
     }
 
     Ok(())
-}
+}*/
 
 /// Removes a question by its ID.
 ///
@@ -135,7 +167,10 @@ pub async fn add(questions: &Pool<Postgres>, question: Question) -> Result<(), B
 ///
 /// A `Result` indicating whether the question was removed successfully.
 /// If the question does not exist, returns a `QuestionBankErr` error.
-pub async fn delete(questions: &Pool<Postgres>, index: i32) -> Result<(), Box<dyn Error>> {
+pub async fn delete(_questions: &DatabaseConnection, _index: i32) -> Result<(), Box<dyn Error>> {
+    todo!();
+}
+/*pub async fn delete(questions: &DatabaseConnection, index: i32) -> Result<(), Box<dyn Error>> {
     sqlx::query(
         r#"
         DELETE FROM questions
@@ -150,7 +185,7 @@ pub async fn delete(questions: &Pool<Postgres>, index: i32) -> Result<(), Box<dy
     .await?;
 
     Ok(())
-}
+}*/
 
 /// Updates a question by its ID.
 ///
@@ -165,7 +200,15 @@ pub async fn delete(questions: &Pool<Postgres>, index: i32) -> Result<(), Box<dy
 /// If the question does not exist or is unprocessable, returns a `QuestionBankErr` error.
 /// If successful, returns a `StatusCode` of 200.
 pub async fn update(
-    questions: &Pool<Postgres>,
+    _questions: &DatabaseConnection,
+    _index: i32,
+    _question: Question,
+) -> Result<Question, Box<dyn Error>> {
+    todo!();
+}
+
+/*pub async fn update(
+    questions: &DatabaseConnection,
     index: i32,
     question: Question,
 ) -> Result<Question, Box<dyn Error>> {
@@ -221,4 +264,4 @@ pub async fn update(
     };
 
     Ok(question_to_update)
-}
+}*/

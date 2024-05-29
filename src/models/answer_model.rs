@@ -1,5 +1,10 @@
+use sea_orm::{DbBackend, DeleteResult, FromQueryResult, Statement};
+use sea_orm::ActiveValue::Set;
+use sea_orm::ActiveModelTrait;
+use crate::entities::answers::Entity;
+use sea_orm::EntityTrait;
 use crate::models::lib::*;
-use crate::entities::answer::*;
+use crate::entities::answers::{Model as Answer, ActiveModel};
 
 /// Retrieves an answer by its ID.
 ///
@@ -10,19 +15,23 @@ use crate::entities::answer::*;
 /// # Returns
 ///
 /// An instance of an answer with the specified question ID, or a `QuestionBankErr` error if the answer does not exist.
-pub async fn get(answers: &Pool<Postgres>, index: i32) -> Result<Answer, Box<dyn Error>> {
-    let answer = sqlx::query(
+pub async fn get(answers: &sea_orm::DatabaseConnection, index: i32) -> Result<Answer, Box<dyn Error>> {
+    let answer = Answer::find_by_statement(Statement::from_sql_and_values(
+        DbBackend::Postgres,
         r#"
         SELECT id, answer, question_id
         FROM answers
         WHERE question_id = $1
         "#,
-    )
-    .bind(index)
-    .fetch_one(answers)
-    .await?;
+        [index.into()],
+        ))
+        .one(answers)
+        .await.unwrap_or(None);
 
-    Ok(<Answer as std::convert::From<PgRow>>::from(answer))
+    match answer {
+        Some(res) => Ok(res),
+        None => Err("No answer found for question".into()),
+    }
 }
 
 /// Adds a new answer.
@@ -36,17 +45,16 @@ pub async fn get(answers: &Pool<Postgres>, index: i32) -> Result<Answer, Box<dyn
 /// A `Result` indicating whether the answer was added successfully.
 /// If the answer already exists, returns a `QuestionBankErr` error.
 /// TODO maybe overwrite the answer if it exists?
-pub async fn add(answers: &Pool<Postgres>, answer: Answer) -> Result<(), Box<dyn Error>> {
-    let answer_to_insert =
-        sqlx::query(r#"INSERT INTO answers (answer, question_id) VALUES ($1, $2) RETURNING id"#)
-        .bind(answer.answer)
-        .bind(answer.question_id)
-        .fetch_one(answers)
-        .await?;
+pub async fn add(answers: &sea_orm::DatabaseConnection, answer: Answer) -> Result<(), Box<dyn Error>> {
+    let answer_to_insert = ActiveModel
+    {
+        answer: Set(answer.answer),
+        question_id: Set(answer.question_id),
+        ..Default::default()
+    };
 
-
-    let question_id: i32 = answer_to_insert.get(0);
-    tracing::debug!("ID of the question the answer was added to: {}", question_id);
+    let question_id = Entity::insert(answer_to_insert).exec(answers).await?;
+    tracing::debug!("ID of the question the answer was added to: {}", question_id.last_insert_id);
 
     Ok(())
 }
@@ -62,16 +70,9 @@ pub async fn add(answers: &Pool<Postgres>, answer: Answer) -> Result<(), Box<dyn
 /// A `Result` indicating whether the answer was removed successfully.
 /// If the answer does not exist, returns a `QuestionBankErr` error.
 /// TODO need to look into what is expected here
-pub async fn delete(answers: &Pool<Postgres>, index: i32) -> Result<(), Box<dyn Error>> {
-    sqlx::query(
-        r#"
-        DELETE FROM answers
-        WHERE question_id = $1
-        ;"#,
-    )
-    .bind(index)
-    .execute(answers)
-    .await?;
+pub async fn delete(answers: &sea_orm::DatabaseConnection, index: i32) -> Result<(), Box<dyn Error>> {
+    let res: DeleteResult = Entity::delete_by_id(index).exec(answers).await?;
+    tracing::debug!("Deleted {:?} rows", res);
 
     Ok(())
 }
@@ -89,25 +90,16 @@ pub async fn delete(answers: &Pool<Postgres>, index: i32) -> Result<(), Box<dyn 
 /// If the question does not exist or is unprocessable, returns a `QuestionBankErr` error.
 /// If successful, returns a `StatusCode` of 200.
 pub async fn update(
-    answers: &Pool<Postgres>,
+    answers: &sea_orm::DatabaseConnection,
     index: i32,
     answer: Answer,
 ) -> Result<Answer, Box<dyn Error>> {
-    let answer = answer.answer;
-
-    let mut answer_to_update = get(answers, index).await?;
-    answer_to_update.answer.clone_from(&answer);
-
-    sqlx::query(
-        r#"
-        UPDATE answers
-        SET answer = $1
-        WHERE question_id = $2;"#,
-    )
-    .bind(answer)
-    .bind(index)
-    .execute(answers)
-    .await?;
-
-    Ok(answer_to_update)
+    let db_answer = Entity::find_by_id(index).one(answers).await?;
+    if db_answer.is_none() {
+        Err("No answer found for question".into())
+    } else {
+        let mut db_answer: ActiveModel = db_answer.unwrap().into();
+        db_answer.answer = Set(answer.answer);
+        Ok(db_answer.update(answers).await?)
+    }
 }
