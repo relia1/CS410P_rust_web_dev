@@ -96,7 +96,6 @@ async fn main() {
         .merge(swagger_ui2)
         .merge(redoc_ui2)
         .merge(rapidoc_ui2)
-
         .with_state(questionsbank)
         .fallback(handler_404)
         .layer(

@@ -1,8 +1,13 @@
 use crate::models::lib::*;
 use crate::entities::questions::Model as Question;
+use crate::entities::tags::Model as Tag;
+use crate::entities::tags::Entity as TagEntity;
 use sea_orm::EntityTrait;
+use sea_orm::PaginatorTrait;
+use sea_orm::QueryOrder;
 use crate::entities::questions::Entity;
 use crate::entities::questions::Column;
+use super::errors::QuestionBankErr;
 
 
 /// Retrieves a paginated list of questions from the question bank.
@@ -18,67 +23,20 @@ use crate::entities::questions::Column;
 /// If the pagination parameters are invalid, returns a `QuestionBankErr` error.
 pub async fn paginated_get(
     questions: &DatabaseConnection,
-    _page: i32,
-    _limit: i32,
+    page: u64,
+    limit: u64,
 ) -> Result<Vec<Question>, Box<dyn Error>> {
-    let mut ret_questions = Vec::new();
-    let mut cursor = Entity::find().cursor_by(Column::Id);
-    cursor.after(1).before(100);
-    for question in cursor.first(10).all(questions).await? {
-        ret_questions.push(question.clone())
+
+    let paginator = Entity::find()
+        .order_by_asc(Column::Id)
+        .paginate(questions, limit);
+
+    let paginated_result = paginator.fetch_page(page - 1).await;
+    match paginated_result {
+        Ok(res) => Ok(res),
+        Err(e) => Err(Box::new(e)),
     }
-    Ok(ret_questions)
-    /*
-    let question = Question::find_by_statement(Statement::from_sql_and_values(
-        DbBackend::Postgres,
-        r#"
-        SELECT id, answer, question_id
-        FROM answers
-        WHERE question_id = $1
-        "#,
-        [index.into()],
-        ))
-        .one(answers)
-        .await.unwrap_or(None);
-
-    match answer {
-        Some(res) => Ok(res),
-        None => Err("No answer found for question".into()),*/
-}
-
-/*
-    let row = sqlx::query(r#"SELECT COUNT(*) FROM questions;"#)
-        .fetch_one(questions)
-        .await?;
-    let total_questions: i64 = row.get(0);
-    let start_index = (page - 1) * limit;
-    if (start_index as i64) > total_questions {
-        return Err(Box::new(QuestionBankErr::PaginationInvalid(
-            "Invalid query parameter values".to_string(),
-        )));
-    }
-    let questions = sqlx::query(
-        r#"
-        SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
-        FROM questions q
-        LEFT JOIN question_tags qt ON q.id = qt.question_id
-        LEFT JOIN tags t ON qt.tag_id = t.id
-        GROUP BY q.id, q.title, q.content
-        ORDER BY q.id
-        LIMIT $1 OFFSET $2"#,
-    )
-    .bind(limit)
-    .bind(start_index)
-    .fetch_all(questions)
-    .await?;
-
-    let mut question_vec: Vec<Question> = Vec::new();
-    for row in questions {
-        question_vec.push(<Question as std::convert::From<PgRow>>::from(row));
-    }
-
-    Ok(question_vec)
-}*/
+} 
 
 /// Retrieves a question by its ID.
 ///
@@ -89,26 +47,13 @@ pub async fn paginated_get(
 /// # Returns
 ///
 /// A reference to the `Question` instance with the specified ID, or a `QuestionBankErr` error if the question does not exist.
-pub async fn get(_questions: &DatabaseConnection, _index: i32) -> Result<Question, Box<dyn Error>> {
-    todo!();
+pub async fn get(questions: &DatabaseConnection, index: i32) -> Result<Option<Question>, Box<dyn Error>> {
+    let found_question = Entity::find_by_id(index).one(questions).await?;
+    match found_question {
+        Some(val) => Ok(Some(val)),
+        None => Err(Box::new(QuestionBankErr::DoesNotExist("No question by that ID".to_string()))),
+    }
 }
-/*pub async fn get(questions: &DatabaseConnection, index: i32) -> Result<Question, Box<dyn Error>> {
-    let question = sqlx::query(
-        r#"
-        SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
-        FROM questions q
-        LEFT JOIN question_tags qt ON q.id = qt.question_id
-        LEFT JOIN tags t ON qt.tag_id = t.id
-        WHERE q.id = $1
-        GROUP BY q.id, q.title, q.content;
-        "#,
-    )
-    .bind(index)
-    .fetch_one(questions)
-    .await?;
-
-    Ok(<Question as std::convert::From<PgRow>>::from(question))
-}*/
 
 /// Adds a new question.
 ///
@@ -120,42 +65,29 @@ pub async fn get(_questions: &DatabaseConnection, _index: i32) -> Result<Questio
 ///
 /// A `Result` indicating whether the question was added successfully.
 /// If the question already exists, returns a `QuestionBankErr` error.
-pub async fn add(_questions: &DatabaseConnection, _question: Question) -> Result<(), Box<dyn Error>> {
-    todo!("todo");
+pub async fn add(questions: &DatabaseConnection, question: Question/*, tag: Option<Tag>*/) -> Result<(), Box<dyn Error>> {
+    let question_to_insert = ActiveModel
+    {
+        title: Set(question.title),
+        content: Set(question.content),
+        ..Default::default()
+    };
+    todo!("finish this");
+
+    /*
+    let question_id = Entity::insert(question_to_insert).exec(questions).await?;
+    let mut tag_id = 0;
+    match tag {
+        Some(res) => {
+            tag_id = TagEntity::insert(res).exec(questions).await?;
+        },
+        None => {
+        },
+    };
+    tracing::debug!("ID of the question the answer was added to: {}", question_id.last_insert_id);
+
+    Ok(())*/
 }
-/*pub async fn add(questions: &DatabaseConnection, question: Question) -> Result<(), Box<dyn Error>> {
-    let question_to_insert =
-        sqlx::query(r#"INSERT INTO questions (title, content) VALUES ($1, $2) RETURNING id"#)
-            .bind(question.title)
-            .bind(question.content)
-            .fetch_one(questions)
-            .await?;
-
-    let question_id: i32 = question_to_insert.get(0);
-
-    let mut tag_id_vec: Vec<i32> = Vec::new();
-    if question.tags.is_some() {
-        let mut tag_id;
-        for tag in &question.tags.clone().unwrap() {
-            tag_id = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
-                .bind(tag)
-                .fetch_one(questions)
-                .await?;
-
-            tag_id_vec.push(tag_id.get(0));
-        }
-    }
-
-    for tag_id in tag_id_vec {
-        sqlx::query(r#"INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);"#)
-            .bind(question_id)
-            .bind(tag_id)
-            .execute(questions)
-            .await?;
-    }
-
-    Ok(())
-}*/
 
 /// Removes a question by its ID.
 ///
@@ -167,25 +99,12 @@ pub async fn add(_questions: &DatabaseConnection, _question: Question) -> Result
 ///
 /// A `Result` indicating whether the question was removed successfully.
 /// If the question does not exist, returns a `QuestionBankErr` error.
-pub async fn delete(_questions: &DatabaseConnection, _index: i32) -> Result<(), Box<dyn Error>> {
-    todo!();
-}
-/*pub async fn delete(questions: &DatabaseConnection, index: i32) -> Result<(), Box<dyn Error>> {
-    sqlx::query(
-        r#"
-        DELETE FROM questions
-        WHERE id IN (
-          SELECT question_id FROM question_tags
-          WHERE question_id = $1
-        );
-        "#,
-    )
-    .bind(index)
-    .execute(questions)
-    .await?;
+pub async fn delete(questions: &DatabaseConnection, index: i32) -> Result<(), Box<dyn Error>> {
+    let number_rows_deleted =  Entity::delete_by_id(index).exec(questions).await?;
 
+    tracing::debug!("Deleted {:?} rows", number_rows_deleted);
     Ok(())
-}*/
+}
 
 /// Updates a question by its ID.
 ///
@@ -200,68 +119,17 @@ pub async fn delete(_questions: &DatabaseConnection, _index: i32) -> Result<(), 
 /// If the question does not exist or is unprocessable, returns a `QuestionBankErr` error.
 /// If successful, returns a `StatusCode` of 200.
 pub async fn update(
-    _questions: &DatabaseConnection,
-    _index: i32,
-    _question: Question,
-) -> Result<Question, Box<dyn Error>> {
-    todo!();
-}
-
-/*pub async fn update(
     questions: &DatabaseConnection,
     index: i32,
     question: Question,
 ) -> Result<Question, Box<dyn Error>> {
-    let title = question.title;
-    let content = question.content;
-    let tags = question.tags;
-
-    let mut question_to_update = get(questions, index).await?;
-    question_to_update.title.clone_from(&title);
-    question_to_update.content.clone_from(&content);
-    question_to_update.tags = tags;
-
-    sqlx::query(
-        r#"
-        UPDATE questions
-        SET title = $1, content = $2
-        WHERE id = $3;"#,
-    )
-    .bind(title)
-    .bind(content)
-    .bind(index)
-    .execute(questions)
-    .await?;
-
-    sqlx::query(
-        r#"
-        DELETE FROM question_tags
-        WHERE question_id = $1;
-        "#,
-    )
-    .bind(question_to_update.id)
-    .execute(questions)
-    .await?;
-
-    let mut tag_id_vec: Vec<i32> = Vec::new();
-    let mut tag_id;
-    if let Some(ref tags_to_add) = question_to_update.tags {
-        for tag in tags_to_add {
-            tag_id = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
-                .bind(tag)
-                .fetch_one(questions)
-                .await?;
-
-            tag_id_vec.push(tag_id.get(0));
-        }
-        for tag_id in tag_id_vec {
-            sqlx::query(r#"INSERT INTO question_tags (question_id, tag_id) VALUES ($1, $2);"#)
-                .bind(index)
-                .bind(tag_id)
-                .execute(questions)
-                .await?;
-        }
-    };
-
-    Ok(question_to_update)
-}*/
+    let db_question = Entity::find_by_id(index).one(questions).await?;
+    if db_question.is_none() {
+        Err("Question not found".into())
+    } else {
+        let mut db_question: ActiveModel = db_question.unwrap().into();
+        db_question.title = Set(question.title);
+        db_question.content = Set(question.content);
+        Ok(db_question.update(questions).await?)
+    }
+}

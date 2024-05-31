@@ -55,6 +55,7 @@ impl IndexTemplate {
 #[debug_handler]
 pub async fn handler_index(State(questions): State<Arc<RwLock<QuestionBank>>>) -> Response {
     let read_lock = questions.read().await;
-    let question = get(&read_lock.question_db, 1).await.unwrap();
+    // TODO fix this hard coding
+    let question = get(&read_lock.question_db, 1).await.unwrap().unwrap();
     (StatusCode::OK, IndexTemplate::new(question)).into_response()
 }

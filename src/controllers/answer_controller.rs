@@ -1,8 +1,7 @@
 #![ allow(warnings)]
-use sea_orm::TryIntoModel;
-
 use crate::controllers::lib::*;
-use crate::entities::prelude::Answer; // as Answer;
+use sea_orm::TryIntoModel;
+use crate::entities::prelude::Answer;
 use crate::models::answer_model::*;
 use crate::models::errors::QuestionBankError;
 use crate::QuestionBank;

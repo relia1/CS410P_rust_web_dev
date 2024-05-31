@@ -1,5 +1,6 @@
 use crate::controllers::lib::*;
 use crate::entities::prelude::Question;
+use crate::entities::prelude::Tag;
 use crate::models::question_model::*;
 use crate::models::errors::*;
 use crate::pagination::Pagination;
@@ -15,7 +16,7 @@ use crate::pagination::Pagination;
         update_question,
     ),
     components(
-        schemas(crate::entities::questions::Model, QuestionBankError)
+        schemas(crate::entities::questions::Model, QuestionBankError, Pagination)
     ),
     tags(
         (name = "Questions Server API", description = "Questions Server API")
@@ -25,14 +26,16 @@ pub struct ApiDoc;
 
 #[utoipa::path(
     get,
-    path = "/api/v1/questions?page=1&limit=5",
+    path = "/api/v1/questions?page={page}&limit={limit}",
+    params(("page", description = "Page"), ("limit", description = "limit")),
     responses(
-        (status = 200, description = "List questions", body = [Question]),
+        (status = 200, description = "List questions", body = [crate::entities::questions::Model]),
         (status = 404, description = "No questions in that range")
     )
 )]
 pub async fn questions(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
+    // Path((page, limit)): Path<(u64, u64)>,
     Query(params): Query<Pagination>,
 ) -> Response {
     let page = params.page;
@@ -65,7 +68,11 @@ pub async fn get_question(
 ) -> Response {
     let read_lock = questions.read().await;
     match get(&read_lock.question_db, question_id).await {
-        Ok(question) => question.into_response(),
+        Ok(Some(question)) => question.into_response(),
+        Ok(None) => QuestionBankError::response(
+            StatusCode::NOT_FOUND,
+            Box::new(QuestionBankErr::DoesNotExist("Question not found".to_string())),
+        ),
         Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
 }
@@ -85,10 +92,11 @@ pub async fn get_question(
 pub async fn post_question(
     State(questions): State<Arc<RwLock<QuestionBank>>>,
     Json(question): Json<Question>,
+    /*Json(tag): Json<Option<Tag>>,*/
 ) -> Response {
     tracing::info!("post question!");
     let write_lock = questions.write().await;
-    match add(&write_lock.question_db, question).await {
+    match add(&write_lock.question_db, question/*, tag*/).await {
         Ok(_) => StatusCode::CREATED.into_response(),
         Err(e) => QuestionBankError::response(StatusCode::BAD_REQUEST, e),
     }

@@ -3,4 +3,4 @@
 pub use super::answers::Model as Answer;
 pub use super::question_tags::Entity as QuestionTag;
 pub use super::questions::Model as Question;
-pub use super::tags::Entity as Tag;
+pub use super::tags::Model as Tag;

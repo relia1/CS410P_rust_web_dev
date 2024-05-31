@@ -71,8 +71,8 @@ pub async fn add(answers: &sea_orm::DatabaseConnection, answer: Answer) -> Resul
 /// If the answer does not exist, returns a `QuestionBankErr` error.
 /// TODO need to look into what is expected here
 pub async fn delete(answers: &sea_orm::DatabaseConnection, index: i32) -> Result<(), Box<dyn Error>> {
-    let res: DeleteResult = Entity::delete_by_id(index).exec(answers).await?;
-    tracing::debug!("Deleted {:?} rows", res);
+    let number_rows_deleted: DeleteResult = Entity::delete_by_id(index).exec(answers).await?;
+    tracing::debug!("Deleted {:?} rows", number_rows_deleted);
 
     Ok(())
 }

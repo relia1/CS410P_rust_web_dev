@@ -2,8 +2,11 @@
 use crate::entities::lib::*;
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
+use utoipa::IntoParams;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ToSchema)]
+#[derive(
+    Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize, ToSchema, IntoParams,
+)]
 #[sea_orm(table_name = "questions")]
 pub struct Model {
     #[sea_orm(primary_key)]
@@ -16,7 +19,7 @@ pub struct Model {
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
-    #[sea_orm(has_many = "super::answers::Entity")]
+    #[sea_orm(has_one = "super::answers::Entity")]
     Answers,
     #[sea_orm(has_many = "super::question_tags::Entity")]
     QuestionTags,

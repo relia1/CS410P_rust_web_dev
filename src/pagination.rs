@@ -1,7 +1,8 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize, ToSchema, IntoParams)]
 pub struct Pagination {
-    pub page: i32,
-    pub limit: i32,
+    pub page: u64,
+    pub limit: u64,
 }
