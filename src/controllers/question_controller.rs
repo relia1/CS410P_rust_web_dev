@@ -1,5 +1,5 @@
 use crate::controllers::lib::*;
-use crate::entities::prelude::Question;
+use crate::entities::question::Question;
 use crate::models::question_model::*;
 use crate::models::errors::*;
 use crate::pagination::Pagination;
@@ -15,7 +15,7 @@ use crate::pagination::Pagination;
         update_question,
     ),
     components(
-        schemas(crate::entities::questions::Model, QuestionBankError)
+        schemas(Question, QuestionBankError)
     ),
     tags(
         (name = "Questions Server API", description = "Questions Server API")

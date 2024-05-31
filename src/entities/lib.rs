@@ -4,5 +4,5 @@ pub use axum::{
     Json,
 };
 pub use serde::{Deserialize, Serialize};
-pub use sqlx::Row;
+pub use sqlx::{postgres::PgRow, Row};
 pub use utoipa::ToSchema;

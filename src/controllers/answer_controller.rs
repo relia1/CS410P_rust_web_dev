@@ -1,8 +1,6 @@
 #![ allow(warnings)]
-use sea_orm::TryIntoModel;
-
 use crate::controllers::lib::*;
-use crate::entities::prelude::Answer; // as Answer;
+use crate::entities::answer::Answer;
 use crate::models::answer_model::*;
 use crate::models::errors::QuestionBankError;
 use crate::QuestionBank;
@@ -42,7 +40,7 @@ pub async fn get_answer(
     let read_guard = answers.read().await;
     match get(&read_guard.question_db, question_id).await {
         Ok(answer) => answer.into_response(),
-        _ => (StatusCode::NO_CONTENT, "No answer for that question").into_response(),
+        Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
 }
 
