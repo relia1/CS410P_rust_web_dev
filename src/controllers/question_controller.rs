@@ -25,7 +25,11 @@ pub struct ApiDoc;
 
 #[utoipa::path(
     get,
-    path = "/api/v1/questions?page=1&limit=5",
+    path = "/api/v1/questions?page={page}&limit={limit}",
+    params(
+        ("page" = u64, description = "Page", minimum = 1),
+        ("limit" = u64, description = "Limit", minimum = 1)
+    ),
     responses(
         (status = 200, description = "List questions", body = [Question]),
         (status = 404, description = "No questions in that range")

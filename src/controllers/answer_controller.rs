@@ -1,4 +1,3 @@
-#![ allow(warnings)]
 use crate::controllers::lib::*;
 use crate::entities::answer::Answer;
 use crate::models::answer_model::*;
