@@ -1,12 +1,12 @@
 pub use crate::config::*;
 pub use askama_axum::IntoResponse;
-pub use axum::debug_handler;
-pub use axum::extract::Path;
-pub use axum::extract::Query;
-pub use axum::extract::State;
-pub use axum::http::StatusCode;
-pub use axum::response::Response;
-pub use axum::Json;
+pub use axum::{
+    debug_handler,
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::Response,
+    Json,
+};
 pub use std::sync::Arc;
 pub use tokio::sync::RwLock;
 pub use utoipa::OpenApi;

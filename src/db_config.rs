@@ -1,7 +1,8 @@
-use crate::*;
-use sqlx::postgres::PgPoolOptions;
-use sqlx::Pool;
-use sqlx::Postgres;
+use sqlx::{
+    postgres::PgPoolOptions,
+    Pool,
+    Postgres,
+};
 use std::error::Error;
 use tracing::trace;
 

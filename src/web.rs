@@ -1,4 +1,5 @@
 use crate::entities::question::*;
+use crate::models::question_model::get;
 use crate::*;
 use askama::Template;
 use askama_axum::IntoResponse;
@@ -7,7 +8,6 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::Response;
 use std::sync::Arc;
-use crate::models::question_model::get;
 use tokio::sync::RwLock;
 
 #[derive(Template, Serialize, Debug)]

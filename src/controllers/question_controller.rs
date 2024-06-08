@@ -1,8 +1,9 @@
-use crate::controllers::lib::*;
-use crate::entities::question::Question;
-use crate::models::question_model::*;
-use crate::models::errors::*;
-use crate::pagination::Pagination;
+use crate::{
+    controllers::lib::*,
+    entities::question::Question,
+    models::{errors::*, question_model::*},
+    pagination::Pagination,
+};
 // From utoipa/examples/{simple-axum, axum-todo}.
 
 #[derive(OpenApi)]

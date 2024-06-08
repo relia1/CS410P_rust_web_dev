@@ -1,5 +1,4 @@
-use crate::models::lib::*;
-use crate::entities::answer::*;
+use crate::{entities::answer::*, models::lib::*};
 
 /// Retrieves an answer by its ID.
 ///
@@ -39,14 +38,16 @@ pub async fn get(answers: &Pool<Postgres>, index: i32) -> Result<Answer, Box<dyn
 pub async fn add(answers: &Pool<Postgres>, answer: Answer) -> Result<(), Box<dyn Error>> {
     let answer_to_insert =
         sqlx::query(r#"INSERT INTO answers (answer, question_id) VALUES ($1, $2) RETURNING id"#)
-        .bind(answer.answer)
-        .bind(answer.question_id)
-        .fetch_one(answers)
-        .await?;
-
+            .bind(answer.answer)
+            .bind(answer.question_id)
+            .fetch_one(answers)
+            .await?;
 
     let question_id: i32 = answer_to_insert.get(0);
-    tracing::debug!("ID of the question the answer was added to: {}", question_id);
+    tracing::debug!(
+        "ID of the question the answer was added to: {}",
+        question_id
+    );
 
     Ok(())
 }

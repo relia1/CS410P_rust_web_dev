@@ -1,9 +1,9 @@
-use crate::controllers::lib::*;
-use crate::entities::answer::Answer;
-use crate::models::answer_model::*;
-use crate::models::errors::QuestionBankError;
-use crate::QuestionBank;
-
+use crate::{
+    controllers::lib::*,
+    entities::answer::Answer,
+    models::{answer_model::*, errors::QuestionBankError},
+    QuestionBank,
+};
 
 // From utoipa/examples/{simple-axum, axum-todo}.
 #[derive(OpenApi)]
@@ -107,6 +107,7 @@ pub async fn update_answer(
     Path(question_id): Path<i32>,
     Json(answer): Json<Answer>,
 ) -> Response {
+    println!("delete");
     let write_guard = answers.write().await;
     match update(&write_guard.question_db, question_id, answer).await {
         Ok(_) => StatusCode::OK.into_response(),

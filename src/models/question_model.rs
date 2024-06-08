@@ -1,9 +1,9 @@
-use crate::models::lib::*;
-use crate::entities::question;
-use crate::entities::question::Question;
-
-
-
+use crate::{
+    entities::{
+        question, question::Question
+    },
+    models::lib::*,
+};
 
 /// Retrieves a paginated list of questions from the question bank.
 ///

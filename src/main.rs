@@ -1,19 +1,17 @@
-#![warn(clippy::all)]
-
-mod controllers;
-mod entities;
 mod config;
+mod controllers;
+mod db_config;
+mod entities;
 mod models;
 mod pagination;
 mod repositories;
 mod web;
-mod db_config;
 
-use web::*;
 use config::*;
+use web::*;
 
-use crate::controllers::question_controller::*;
 use crate::controllers::answer_controller::*;
+use crate::controllers::question_controller::*;
 use serde::Serialize;
 use tower::ServiceBuilder;
 use tower_http::trace;
@@ -76,15 +74,14 @@ async fn main() {
         .route("/questions/:id/answer", delete(delete_answer))
         .route("/questions/:id/answer", put(update_answer));
 
-
     // handy openai auto generated docs!
     let swagger_ui = SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi());
     let redoc_ui = Redoc::with_url("/redoc", ApiDoc::openapi());
     let rapidoc_ui = RapiDoc::new("/api-docs/openapi.json").path("/rapidoc");
-    let swagger_ui2 = SwaggerUi::new("/swagger-ui2").url("/api-docs/openapi2.json", ApiDoc2::openapi());
+    let swagger_ui2 =
+        SwaggerUi::new("/swagger-ui2").url("/api-docs/openapi2.json", ApiDoc2::openapi());
     let redoc_ui2 = Redoc::with_url("/redoc2", ApiDoc2::openapi());
     let rapidoc_ui2 = RapiDoc::new("/api-docs/openapi.json2").path("/rapidoc2");
-
 
     let app = Router::new()
         .route("/", get(handler_index))
@@ -96,7 +93,6 @@ async fn main() {
         .merge(swagger_ui2)
         .merge(redoc_ui2)
         .merge(rapidoc_ui2)
-
         .with_state(questionsbank)
         .fallback(handler_404)
         .layer(

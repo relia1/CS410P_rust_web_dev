@@ -1,8 +1,6 @@
-use sqlx::Pool;
-use sqlx::Postgres;
-use std::error::Error;
 use crate::db_config::*;
-
+use sqlx::{Pool, Postgres};
+use std::error::Error;
 
 /// A question bank that stores and manages questions and their answers
 #[derive(Debug)]
