@@ -70,7 +70,7 @@ pub async fn get_question(
 ) -> Response {
     let read_lock = questions.read().await;
     match get(&read_lock.question_db, question_id).await {
-        Ok(question) => question.into_response(),
+        Ok(question) => Json(question).into_response(),
         Err(e) => QuestionBankError::response(StatusCode::NOT_FOUND, e),
     }
 }

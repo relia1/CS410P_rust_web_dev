@@ -5,16 +5,13 @@ mod entities;
 mod models;
 mod pagination;
 mod repositories;
-mod web;
 
 use config::*;
-use web::*;
 
 use crate::controllers::answer_controller::*;
 use crate::controllers::question_controller::*;
-use serde::Serialize;
 use tower::ServiceBuilder;
-use tower_http::trace;
+use tower_http::{trace, cors::{CorsLayer, Any}};
 use tracing_subscriber::{fmt, EnvFilter};
 extern crate serde_json;
 extern crate thiserror;
@@ -84,8 +81,6 @@ async fn main() {
     let rapidoc_ui2 = RapiDoc::new("/api-docs/openapi.json2").path("/rapidoc2");
 
     let app = Router::new()
-        .route("/", get(handler_index))
-        .route("/index.html", get(handler_index))
         .nest("/api/v1", apis)
         .merge(swagger_ui)
         .merge(redoc_ui)
@@ -96,14 +91,15 @@ async fn main() {
         .with_state(questionsbank)
         .fallback(handler_404)
         .layer(
-            ServiceBuilder::new().layer(trace_layer), /*.layer(
-                                                          CorsLayer::new()
-                                                              .allow_origin(Any)
-                                                              .allow_methods(Any)
-                                                              .allow_headers(Any)
-                                                              .expose_headers(Any),
-
-                                                      ),*/ //.route_service("/favicon.ico", favicon)
+            CorsLayer::new()
+            .allow_origin(Any)
+            .allow_methods(Any)
+            .allow_headers(Any)
+            .expose_headers(Any),
+        )
+        .layer(
+            ServiceBuilder::new().layer(trace_layer),
+             //.route_service("/favicon.ico", favicon)
         );
 
     // start up webserver on localhost:3000

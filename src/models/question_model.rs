@@ -31,6 +31,7 @@ pub async fn paginated_get(
             "Invalid query parameter values".to_string(),
         )));
     }
+
     let questions = sqlx::query(
         r#"
         SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
@@ -63,7 +64,8 @@ pub async fn paginated_get(
 /// # Returns
 ///
 /// A reference to the `Question` instance with the specified ID, or a `QuestionBankErr` error if the question does not exist.
-pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Question, Box<dyn Error>> {
+pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Vec<Question>, Box<dyn Error>> {
+    let mut question_vec = vec![];
     let question = sqlx::query(
         r#"
         SELECT q.id, q.title, q.content, ARRAY_AGG(t.name) AS tags
@@ -78,7 +80,8 @@ pub async fn get(questions: &Pool<Postgres>, index: i32) -> Result<Question, Box
     .fetch_one(questions)
     .await?;
 
-    Ok(<Question as std::convert::From<PgRow>>::from(question))
+    question_vec.push(<Question as std::convert::From<PgRow>>::from(question));
+    Ok(question_vec)
 }
 
 /// Adds a new question.
@@ -168,15 +171,15 @@ pub async fn update(
     questions: &Pool<Postgres>,
     index: i32,
     question: Question,
-) -> Result<Question, Box<dyn Error>> {
+) -> Result<Vec<Question>, Box<dyn Error>> {
     let title = question.title;
     let content = question.content;
     let tags = question.tags;
 
     let mut question_to_update = get(questions, index).await?;
-    question_to_update.title.clone_from(&title);
-    question_to_update.content.clone_from(&content);
-    question_to_update.tags = tags;
+    question_to_update[0].title.clone_from(&title);
+    question_to_update[0].content.clone_from(&content);
+    question_to_update[0].tags = tags;
 
     sqlx::query(
         r#"
@@ -196,13 +199,13 @@ pub async fn update(
         WHERE question_id = $1;
         "#,
     )
-    .bind(question_to_update.id)
+    .bind(question_to_update[0].id)
     .execute(questions)
     .await?;
 
     let mut tag_id_vec: Vec<i32> = Vec::new();
     let mut tag_id;
-    if let Some(ref tags_to_add) = question_to_update.tags {
+    if let Some(ref tags_to_add) = question_to_update[0].tags {
         for tag in tags_to_add {
             tag_id = sqlx::query(r#"INSERT INTO tags (name) VALUES ($1) RETURNING id"#)
                 .bind(tag)
