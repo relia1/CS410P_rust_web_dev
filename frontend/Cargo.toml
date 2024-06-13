@@ -1,0 +1,17 @@
+[package]
+name = "rust-web-yew"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gloo-console = "0.3.0"
+gloo-net = "0.2"
+serde = { version = "1.0", features = ["derive"] }
+wasm-bindgen-futures = "0.4"
+wasm-cookies = "0.2.1"
+web-sys = { version = "0.3.69", features = ["HtmlTextAreaElement"] }
+yew = "0.21.0"
+patternfly-yew = { version = "0.6.1", features = ["tree", "icons-fab"] }
+yew-hooks = "0.3"
+yew-more-hooks = { version = "0.3.3", features = ["yew-hooks"] }
+yew-nested-router = "0.7.1"
