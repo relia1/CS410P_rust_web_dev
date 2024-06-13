@@ -1,7 +1,5 @@
 use crate::{
-    entities::{
-        question, question::Question
-    },
+    entities::{question, question::Question},
     models::lib::*,
 };
 

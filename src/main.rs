@@ -11,7 +11,10 @@ use config::*;
 use crate::controllers::answer_controller::*;
 use crate::controllers::question_controller::*;
 use tower::ServiceBuilder;
-use tower_http::{trace, cors::{CorsLayer, Any}};
+use tower_http::{
+    cors::{Any, CorsLayer},
+    trace,
+};
 use tracing_subscriber::{fmt, EnvFilter};
 extern crate serde_json;
 extern crate thiserror;
@@ -92,14 +95,14 @@ async fn main() {
         .fallback(handler_404)
         .layer(
             CorsLayer::new()
-            .allow_origin(Any)
-            .allow_methods(Any)
-            .allow_headers(Any)
-            .expose_headers(Any),
+                .allow_origin(Any)
+                .allow_methods(Any)
+                .allow_headers(Any)
+                .expose_headers(Any),
         )
         .layer(
             ServiceBuilder::new().layer(trace_layer),
-             //.route_service("/favicon.ico", favicon)
+            //.route_service("/favicon.ico", favicon)
         );
 
     // start up webserver on localhost:3000

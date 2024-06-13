@@ -1,8 +1,4 @@
-use sqlx::{
-    postgres::PgPoolOptions,
-    Pool,
-    Postgres,
-};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use std::error::Error;
 use tracing::trace;
 
