@@ -14,4 +14,4 @@ yew = "0.21.0"
 patternfly-yew = { version = "0.6.1", features = ["tree", "icons-fab"] }
 yew-hooks = "0.3"
 yew-more-hooks = { version = "0.3.3", features = ["yew-hooks"] }
-yew-nested-router = "0.7.1"
+yew-nested-router = "0.7.0"
