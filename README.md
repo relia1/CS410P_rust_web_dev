@@ -21,11 +21,14 @@ and deleting questions.
 
 - GET /questions: Retrieves a list of all questions
 - GET /paginated_questions: Retrieves a paginated list of questions
-- GET /question: Retrieves a random question
 - GET /questions/{id}: Retrieves a question by ID
 - POST /questions/add: Creates a new question
 - DELETE /questions/{id}: Deletes a question by ID
 - PUT /questions/{id}: Updates a question by ID
+- GET /questions/{id}/answer
+- PUT /questions/{id}/answer
+- POST /questions/{id}/answer
+- DELETE /questions/{id}/answer
 
 # Documentation
 
@@ -33,8 +36,11 @@ API documentation can be found at /swagger-ui, /redoc, and /rapidoc
 
 # Running the APP
 
-`cargo run`
+`docker compose up --build`
+`trunk serve` in the frontend directory
 Server will then be available at http://localhost:3000 or http://127.0.0.1:3000
+Front end will be available at http://localhost:8080 or http://127.0.0.1:8080
+
 
 Additionally, the server can be run with different levels of tracing
 `RUST_LOG=error cargo run`
