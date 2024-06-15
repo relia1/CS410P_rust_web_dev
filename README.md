@@ -36,8 +36,8 @@ API documentation can be found at /swagger-ui, /redoc, and /rapidoc
 
 # Running the APP
 
-`docker compose up --build`
-`trunk serve` in the frontend directory
+`docker compose up --build`    
+`npm ci` then `trunk serve` in the frontend directory
 Server will then be available at http://localhost:3000 or http://127.0.0.1:3000
 Front end will be available at http://localhost:8080 or http://127.0.0.1:8080
 
